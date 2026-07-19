@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Put,
   Patch,
   Delete,
   Body,
@@ -34,7 +35,7 @@ export class MembersController {
 
   // member - update photo
   @Roles('member')
-  @Patch('profile/photo')
+  @Put('profile/photo')
   updatePhoto(@CurrentUser() user: IUser, @Body() dto: UpdatePhotoDto) {
     return this.membersService.updatePhoto(user.id, dto);
   }
