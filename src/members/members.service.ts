@@ -4,25 +4,32 @@ import { UpdateMemberDto } from './dto/update-member.dto';
 import { UpdatePhotoDto } from './dto/update-photo.dto';
 import { Prisma } from '@prisma/client';
 
+// reusable select untuk profile member
+const memberProfileSelect = {
+  id: true,
+  name: true,
+  phone: true,
+  photo_url: true,
+  date_of_birth: true,
+  gender: true,
+  address: true,
+  created_at: true,
+  user: {
+    select: {
+      email: true,
+      role: true,
+    },
+  },
+};
+
 @Injectable()
 export class MembersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // ambil profile member sendiri
   async getProfile(userId: string) {
-    const member = await this.prisma.member.findFirst({
-      where: {
-        user_id: userId,
-        deleted_at: null,
-      },
-      include: {
-        user: {
-          select: {
-            email: true,
-            role: true,
-          },
-        },
-      },
+    const member = await this.prisma.member.findUnique({
+      where: { user_id: userId },
+      select: memberProfileSelect,
     });
 
     if (!member) {
@@ -32,13 +39,12 @@ export class MembersService {
     return member;
   }
 
-  // update profile member sendiri
   async updateProfile(userId: string, dto: UpdateMemberDto) {
-    const member = await this.prisma.member.findFirst({
-      where: { user_id: userId, deleted_at: null },
+    const member = await this.prisma.member.findUnique({
+      where: { user_id: userId },
     });
 
-    if (!member) {
+    if (!member || member.deleted_at) {
       throw new NotFoundException('Member not found');
     }
 
@@ -50,26 +56,26 @@ export class MembersService {
           ? new Date(dto.date_of_birth)
           : undefined,
       },
+      select: memberProfileSelect,
     });
   }
 
-  // update foto profile
   async updatePhoto(userId: string, dto: UpdatePhotoDto) {
-    const member = await this.prisma.member.findFirst({
-      where: { user_id: userId, deleted_at: null },
+    const member = await this.prisma.member.findUnique({
+      where: { user_id: userId },
     });
 
-    if (!member) {
+    if (!member || member.deleted_at) {
       throw new NotFoundException('Member not found');
     }
 
     return this.prisma.member.update({
       where: { id: member.id },
       data: { photo_url: dto.photo_url },
+      select: memberProfileSelect,
     });
   }
 
-  // owner - list semua member
   async findAll(search?: string, status?: string, page = 1, limit = 10) {
     const skip = (page - 1) * limit;
 
@@ -77,25 +83,16 @@ export class MembersService {
       deleted_at: null,
     };
 
-    // filter search
     if (search) {
       where.name = { contains: search, mode: 'insensitive' };
     }
 
-    // filter status
     if (status === 'active') {
-      where.member_packages = {
-        some: { status: 'active' },
-      };
+      where.member_packages = { some: { status: 'active' } };
     } else if (status === 'expired') {
-      where.member_packages = {
-        every: { status: 'expired' },
-        some: {},
-      };
+      where.member_packages = { every: { status: 'expired' }, some: {} };
     } else if (status === 'no_package') {
-      where.member_packages = {
-        none: {},
-      };
+      where.member_packages = { none: {} };
     }
 
     const [data, total] = await this.prisma.$transaction([
@@ -141,7 +138,6 @@ export class MembersService {
     };
   }
 
-  // owner - detail 1 member
   async findOne(id: string) {
     const member = await this.prisma.member.findFirst({
       where: { id, deleted_at: null },
@@ -166,7 +162,6 @@ export class MembersService {
     return member;
   }
 
-  // owner - soft delete member
   async remove(id: string) {
     const member = await this.prisma.member.findFirst({
       where: { id, deleted_at: null },
@@ -179,6 +174,7 @@ export class MembersService {
     return this.prisma.member.update({
       where: { id },
       data: { deleted_at: new Date() },
+      select: { id: true, name: true },
     });
   }
 }
