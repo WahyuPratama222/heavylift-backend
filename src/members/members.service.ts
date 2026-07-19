@@ -1,8 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateMemberDto } from './dto/update-member.dto';
 import { UpdatePhotoDto } from './dto/update-photo.dto';
-import { Prisma } from '@prisma/client';
+import { Prisma, Gender } from '@prisma/client';
 
 // reusable select untuk profile member
 const memberProfileSelect = {
@@ -80,7 +80,7 @@ export class MembersService {
     });
   }
 
-  async findAll(search?: string, status?: string, page = 1, limit = 10) {
+  async findAll(search?: string, status?: string, gender?: string, page = 1, limit = 10) {
     const skip = (page - 1) * limit;
 
     const where: Prisma.MemberWhereInput = {
@@ -99,7 +99,15 @@ export class MembersService {
       where.member_packages = { none: {} };
     }
 
-    const [data, total] = await this.prisma.$transaction([
+    if (gender && !['male', 'female'].includes(gender)) {
+      throw new BadRequestException('Invalid gender value. Must be male or female');
+    }
+
+    if (gender) {
+      where.gender = gender as Gender;
+    }
+
+    const [members, total] = await this.prisma.$transaction([
       this.prisma.member.findMany({
         where,
         skip,
@@ -111,18 +119,9 @@ export class MembersService {
           photo_url: true,
           gender: true,
           created_at: true,
-          user: {
-            select: { email: true },
-          },
           member_packages: {
             where: { status: 'active' },
-            select: {
-              status: true,
-              end_date: true,
-              package: {
-                select: { name: true },
-              },
-            },
+            select: { status: true },
             take: 1,
           },
         },
@@ -130,6 +129,15 @@ export class MembersService {
       }),
       this.prisma.member.count({ where }),
     ]);
+
+    // derive status dari member_packages
+    const data = members.map((member) => {
+      const { member_packages, ...rest } = member;
+      return {
+        ...rest,
+        status: member_packages.length > 0 ? 'active' : status === 'no_package' ? 'no_package' : 'expired',
+      };
+    });
 
     return {
       data,
@@ -145,14 +153,35 @@ export class MembersService {
   async findOne(id: string) {
     const member = await this.prisma.member.findFirst({
       where: { id, deleted_at: null },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        photo_url: true,
+        date_of_birth: true,
+        gender: true,
+        address: true,
+        created_at: true,
         user: {
-          select: { email: true, role: true },
+          select: { email: true },
         },
         member_packages: {
-          include: {
-            package: true,
-            payments: true,
+          select: {
+            id: true,
+            start_date: true,
+            end_date: true,
+            status: true,
+            package: {
+              select: { name: true, price: true },
+            },
+            payments: {
+              select: {
+                id: true,
+                amount: true,
+                status: true,
+                paid_at: true,
+              },
+            },
           },
           orderBy: { created_at: 'desc' },
         },
@@ -175,10 +204,11 @@ export class MembersService {
       throw new NotFoundException('Member not found');
     }
 
-    return this.prisma.member.update({
+    await this.prisma.member.update({
       where: { id },
       data: { deleted_at: new Date() },
-      select: { id: true, name: true },
     });
+
+    return { message: 'Member deleted successfully' };
   }
 }

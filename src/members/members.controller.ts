@@ -48,10 +48,12 @@ export class MembersController {
     @Query('status') status?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Query('gender') gender?: string,
   ) {
     return this.membersService.findAll(
       search,
       status,
+      gender,
       page ? parseInt(page) : 1,
       limit ? parseInt(limit) : 10,
     );
