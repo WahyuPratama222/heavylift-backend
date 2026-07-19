@@ -101,7 +101,7 @@ export class AuthService {
         id: user.id,
         email: user.email,
         role: user.role,
-        name: user.member?.name,
+        name: user.member?.name ?? 'Owner',
       },
     };
   }
