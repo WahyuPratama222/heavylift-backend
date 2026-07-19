@@ -29,14 +29,18 @@ export class MembersService {
   async getProfile(userId: string) {
     const member = await this.prisma.member.findUnique({
       where: { user_id: userId },
-      select: memberProfileSelect,
+      select: {
+        ...memberProfileSelect,
+        deleted_at: true,
+      },
     });
 
-    if (!member) {
+    if (!member || member.deleted_at) {
       throw new NotFoundException('Member not found');
     }
 
-    return member;
+    const { deleted_at, ...result } = member;
+    return result;
   }
 
   async updateProfile(userId: string, dto: UpdateMemberDto) {
