@@ -40,9 +40,7 @@ export class PackageCategoriesService {
 
   async remove(id: string) {
     await this.findOne(id);
-
-    return this.prisma.packageCategory.delete({
-      where: { id },
-    });
+    await this.prisma.packageCategory.delete({ where: { id } });
+    return { message: 'Package category deleted successfully' };
   }
 }
