@@ -2,15 +2,20 @@ import { Injectable, NotFoundException, ConflictException } from '@nestjs/common
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePackageCategoryDto } from './dto/create-package-category.dto';
 import { UpdatePackageCategoryDto } from './dto/update-package-category.dto';
+import { handlePrismaError } from '../common/helpers/prisma-error.helper';
 
 @Injectable()
 export class PackageCategoriesService {
   constructor(private prisma: PrismaService) {}
 
   async create(dto: CreatePackageCategoryDto) {
-    return this.prisma.packageCategory.create({
-      data: dto,
-    });
+    try {
+      return await this.prisma.packageCategory.create({
+        data: dto,
+      });
+    } catch (e) {
+      handlePrismaError(e);
+    }
   }
 
   async findAll() {
@@ -32,10 +37,14 @@ export class PackageCategoriesService {
   async update(id: string, dto: UpdatePackageCategoryDto) {
     await this.findOne(id);
 
-    return this.prisma.packageCategory.update({
-      where: { id },
-      data: dto,
-    });
+    try {
+      return await this.prisma.packageCategory.update({
+        where: { id },
+        data: dto,
+      });
+    } catch (e) {
+      handlePrismaError(e);
+    }
   }
 
   async remove(id: string) {
