@@ -14,7 +14,7 @@ export class PackageCategoriesService {
         data: dto,
       });
     } catch (e) {
-      handlePrismaError(e);
+      handlePrismaError(e, 'Package category with this name already exists');
     }
   }
 
@@ -43,7 +43,7 @@ export class PackageCategoriesService {
         data: dto,
       });
     } catch (e) {
-      handlePrismaError(e);
+      handlePrismaError(e, 'Package category with this name already exists');
     }
   }
 
@@ -56,7 +56,7 @@ export class PackageCategoriesService {
 
     if (packageCount > 0) {
       throw new ConflictException(
-        'Cannot delete category that still has packages',
+        `Cannot delete category that still has ${packageCount} packages`,
       );
     }
 
