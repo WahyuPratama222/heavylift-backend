@@ -118,7 +118,7 @@ model Trainer {
 
 model PackageCategory {
   id          String   @id @default(uuid())
-  name        String
+  name        String   @unique
   description String?
   created_at  DateTime @default(now())
 
@@ -130,7 +130,7 @@ model PackageCategory {
 model Package {
   id              String   @id @default(uuid())
   category_id     String
-  name            String
+  name            String   @unique
   description     String?
   price           Decimal  @db.Decimal(10, 2)
   duration_days   Int
@@ -266,7 +266,7 @@ model GymSetting {
 
 model GymSchedule {
   id         String  @id @default(uuid())
-  day        Day
+  day        Day     @unique
   open_time  String
   close_time String
   is_closed  Boolean @default(false)
