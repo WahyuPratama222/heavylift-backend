@@ -3,6 +3,29 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreatePackageDto } from './dto/create-package.dto';
 import { UpdatePackageDto } from './dto/update-package.dto';
 
+const packageSelect = {
+  id: true,
+  category_id: true,
+  name: true,
+  description: true,
+  price: true,
+  duration_days: true,
+  include_trainer: true,
+  benefits: true,
+  is_active: true,
+  created_at: true,
+  category: {
+    select: { id: true, name: true },
+  },
+};
+
+function formatPackage(pkg: any) {
+  return {
+    ...pkg,
+    price: Number(pkg.price),
+  };
+}
+
 @Injectable()
 export class PackagesService {
   constructor(private prisma: PrismaService) {}
