@@ -9,9 +9,10 @@ import { RolesGuard } from './common/guards/roles.guard';
 import { MembersModule } from './members/members.module';
 import { PackagesModule } from './packages/packages.module';
 import { PackageCategoriesModule } from './package-categories/package-categories.module';
+import { TrainersModule } from './trainers/trainers.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, MembersModule, PackagesModule, PackageCategoriesModule],
+  imports: [PrismaModule, AuthModule, MembersModule, PackagesModule, PackageCategoriesModule, TrainersModule],
   controllers: [AppController],
   providers: [
     AppService,
