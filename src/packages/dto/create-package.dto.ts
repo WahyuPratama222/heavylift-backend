@@ -3,14 +3,16 @@ import {
   IsBoolean,
   IsNotEmpty,
   IsNumber,
+  IsInt,
   IsOptional,
   IsPositive,
   IsString,
+  IsUUID,
   Min,
 } from 'class-validator';
 
 export class CreatePackageDto {
-  @IsString()
+  @IsUUID()
   @IsNotEmpty()
   category_id: string;
 
@@ -26,7 +28,7 @@ export class CreatePackageDto {
   @IsPositive()
   price: number;
 
-  @IsNumber()
+  @IsInt()
   @Min(1)
   duration_days: number;
 
