@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePackageDto } from './dto/create-package.dto';
 import { UpdatePackageDto } from './dto/update-package.dto';
+import { handlePrismaError } from '../common/helpers/prisma-error.helper';
 
 const packageSelect = {
   id: true,
@@ -31,10 +32,22 @@ export class PackagesService {
   constructor(private prisma: PrismaService) {}
 
   async create(dto: CreatePackageDto) {
-    return this.prisma.package.create({
-      data: dto,
-      include: { category: true },
+    const category = await this.prisma.packageCategory.findUnique({
+      where: { id: dto.category_id },
     });
+    if (!category) {
+      throw new NotFoundException('Package category not found');
+    }
+
+    try {
+      const pkg = await this.prisma.package.create({
+        data: dto,
+        select: packageSelect,
+      });
+      return formatPackage(pkg);
+    } catch (e) {
+      handlePrismaError(e, 'Package with this name already exists');
+    }
   }
 
   async findAll(categoryId?: string) {
@@ -53,22 +66,36 @@ export class PackagesService {
   async findOne(id: string) {
     const pkg = await this.prisma.package.findUnique({
       where: { id },
-      include: { category: true },
+      select: packageSelect,
     });
 
     if (!pkg) throw new NotFoundException('Package not found');
 
-    return pkg;
+    return formatPackage(pkg);
   }
 
   async update(id: string, dto: UpdatePackageDto) {
     await this.findOne(id);
 
-    return this.prisma.package.update({
-      where: { id },
-      data: dto,
-      include: { category: true },
-    });
+    if (dto.category_id) {
+      const category = await this.prisma.packageCategory.findUnique({
+        where: { id: dto.category_id },
+      });
+      if (!category) {
+        throw new NotFoundException('Package category not found');
+      }
+    }
+
+    try {
+      const pkg = await this.prisma.package.update({
+        where: { id },
+        data: dto,
+        select: packageSelect,
+      });
+      return formatPackage(pkg);
+    } catch (e) {
+      handlePrismaError(e, 'Package with this name already exists');
+    }
   }
 
   async remove(id: string) {
