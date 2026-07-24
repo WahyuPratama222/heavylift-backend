@@ -93,6 +93,8 @@ export class MembersService {
 
     if (status === 'active') {
       where.member_packages = { some: { status: 'active' } };
+    } else if (status === 'pending_payment') {
+      where.member_packages = { some: { status: 'pending_payment' } };
     } else if (status === 'expired') {
       where.member_packages = { every: { status: 'expired' }, some: {} };
     } else if (status === 'no_package') {
