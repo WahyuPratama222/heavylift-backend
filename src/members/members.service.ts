@@ -120,8 +120,8 @@ export class MembersService {
           gender: true,
           created_at: true,
           member_packages: {
-            where: { status: 'active' },
             select: { status: true },
+            orderBy: { created_at: 'desc' },
             take: 1,
           },
         },
@@ -130,13 +130,24 @@ export class MembersService {
       this.prisma.member.count({ where }),
     ]);
 
-    // derive status dari member_packages
     const data = members.map((member) => {
       const { member_packages, ...rest } = member;
-      return {
-        ...rest,
-        status: member_packages.length > 0 ? 'active' : status === 'no_package' ? 'no_package' : 'expired',
-      };
+
+      let derivedStatus: string;
+      if (member_packages.length === 0) {
+        derivedStatus = 'no_package'; // belum pernah beli paket
+      } else {
+        const latestStatus = member_packages[0].status; // paket terbaru
+        if (latestStatus === 'active') {
+          derivedStatus = 'active';
+        } else if (latestStatus === 'pending_payment') {
+          derivedStatus = 'pending_payment';
+        } else {
+          derivedStatus = 'expired'; // expired atau cancelled dianggap sama
+        }
+      }
+
+      return { ...rest, status: derivedStatus };
     });
 
     return {
