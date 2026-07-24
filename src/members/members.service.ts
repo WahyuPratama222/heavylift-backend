@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateMemberDto } from './dto/update-member.dto';
 import { UpdatePhotoDto } from './dto/update-photo.dto';
@@ -99,10 +99,6 @@ export class MembersService {
       where.member_packages = { every: { status: 'expired' }, some: {} };
     } else if (status === 'no_package') {
       where.member_packages = { none: {} };
-    }
-
-    if (gender && !['male', 'female'].includes(gender)) {
-      throw new BadRequestException('Invalid gender value. Must be male or female');
     }
 
     if (gender) {
