@@ -205,7 +205,20 @@ export class MembersService {
       throw new NotFoundException('Member not found');
     }
 
-    return member;
+    return {
+      ...member,
+      member_packages: member.member_packages.map((mp) => ({
+        ...mp,
+        package: {
+          ...mp.package,
+          price: Number(mp.package.price),
+        },
+        payments: mp.payments.map((p) => ({
+          ...p,
+          amount: Number(p.amount),
+        })),
+      })),
+    };
   }
 
   async remove(id: string) {
