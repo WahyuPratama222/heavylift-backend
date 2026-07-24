@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateMemberDto } from './dto/update-member.dto';
 import { UpdatePhotoDto } from './dto/update-photo.dto';
@@ -93,14 +93,12 @@ export class MembersService {
 
     if (status === 'active') {
       where.member_packages = { some: { status: 'active' } };
+    } else if (status === 'pending_payment') {
+      where.member_packages = { some: { status: 'pending_payment' } };
     } else if (status === 'expired') {
       where.member_packages = { every: { status: 'expired' }, some: {} };
     } else if (status === 'no_package') {
       where.member_packages = { none: {} };
-    }
-
-    if (gender && !['male', 'female'].includes(gender)) {
-      throw new BadRequestException('Invalid gender value. Must be male or female');
     }
 
     if (gender) {
@@ -203,7 +201,20 @@ export class MembersService {
       throw new NotFoundException('Member not found');
     }
 
-    return member;
+    return {
+      ...member,
+      member_packages: member.member_packages.map((mp) => ({
+        ...mp,
+        package: {
+          ...mp.package,
+          price: Number(mp.package.price),
+        },
+        payments: mp.payments.map((p) => ({
+          ...p,
+          amount: Number(p.amount),
+        })),
+      })),
+    };
   }
 
   async remove(id: string) {

@@ -11,6 +11,7 @@ import {
 import { MembersService } from './members.service';
 import { UpdateMemberDto } from './dto/update-member.dto';
 import { UpdatePhotoDto } from './dto/update-photo.dto';
+import { FindMembersDto } from './dto/find-member.dto';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { IUser } from '../common/interfaces/user.interface';
@@ -43,19 +44,13 @@ export class MembersController {
   // owner - list semua member
   @Roles('owner')
   @Get()
-  findAll(
-    @Query('search') search?: string,
-    @Query('status') status?: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-    @Query('gender') gender?: string,
-  ) {
+  findAll(@Query() query: FindMembersDto) {
     return this.membersService.findAll(
-      search,
-      status,
-      gender,
-      page ? parseInt(page) : 1,
-      limit ? parseInt(limit) : 10,
+      query.search,
+      query.status,
+      query.gender,
+      query.page ? parseInt(query.page) : 1,
+      query.limit ? parseInt(query.limit) : 10,
     );
   }
 
