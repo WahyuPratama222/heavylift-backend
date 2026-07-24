@@ -11,6 +11,7 @@ import { PackageCategoriesService } from './package-categories.service';
 import { CreatePackageCategoryDto } from './dto/create-package-category.dto';
 import { UpdatePackageCategoryDto } from './dto/update-package-category.dto';
 import { Roles } from '../common/decorators/roles.decorator';
+import { Public } from '../common/decorators/public.decorator';
 
 @Controller('package-categories')
 export class PackageCategoriesController {
@@ -24,13 +25,13 @@ export class PackageCategoriesController {
     return this.packageCategoriesService.create(dto);
   }
 
-  @Roles('owner')
+  @Public()
   @Get()
   findAll() {
     return this.packageCategoriesService.findAll();
   }
 
-  @Roles('owner')
+  @Public()
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.packageCategoriesService.findOne(id);
