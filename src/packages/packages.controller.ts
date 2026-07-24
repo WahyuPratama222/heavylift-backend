@@ -6,10 +6,12 @@ import {
   Param,
   Patch,
   Post,
+  Query
 } from '@nestjs/common';
 import { PackagesService } from './packages.service';
 import { CreatePackageDto } from './dto/create-package.dto';
 import { UpdatePackageDto } from './dto/update-package.dto';
+import { FindPackagesDto } from './dto/find-package.dto';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Public } from '../common/decorators/public.decorator';
 
@@ -25,8 +27,8 @@ export class PackagesController {
 
   @Public()
   @Get()
-  findAll() {
-    return this.packagesService.findAll();
+  findAll(@Query() query: FindPackagesDto) {
+    return this.packagesService.findAll(query.category_id);
   }
 
   @Public()

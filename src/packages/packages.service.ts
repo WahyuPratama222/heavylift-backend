@@ -14,12 +14,17 @@ export class PackagesService {
     });
   }
 
-  async findAll() {
-    return this.prisma.package.findMany({
-      where: { is_active: true },
-      include: { category: true },
+  async findAll(categoryId?: string) {
+    const packages = await this.prisma.package.findMany({
+      where: {
+        is_active: true,
+        ...(categoryId && { category_id: categoryId }),
+      },
+      select: packageSelect,
       orderBy: { created_at: 'desc' },
     });
+
+    return packages.map(formatPackage);
   }
 
   async findOne(id: string) {
