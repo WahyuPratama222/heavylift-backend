@@ -46,8 +46,18 @@ export class PackagesService {
   async remove(id: string) {
     await this.findOne(id);
 
-    return this.prisma.package.delete({
-      where: { id },
+    const memberPackageCount = await this.prisma.memberPackage.count({
+      where: { package_id: id },
     });
+
+    if (memberPackageCount > 0) {
+      throw new ConflictException(
+        `Cannot delete package that still has ${memberPackageCount} member(s) using it`,
+      );
+    }
+
+    await this.prisma.package.delete({ where: { id } });
+
+    return { message: 'Package deleted successfully' };
   }
 }
