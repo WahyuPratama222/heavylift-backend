@@ -10,9 +10,10 @@ import { MembersModule } from './members/members.module';
 import { PackagesModule } from './packages/packages.module';
 import { PackageCategoriesModule } from './package-categories/package-categories.module';
 import { TrainersModule } from './trainers/trainers.module';
+import { GymModule } from './gym/gym.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, MembersModule, PackagesModule, PackageCategoriesModule, TrainersModule],
+  imports: [PrismaModule, AuthModule, MembersModule, PackagesModule, PackageCategoriesModule, TrainersModule, GymModule],
   controllers: [AppController],
   providers: [
     AppService,
