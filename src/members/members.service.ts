@@ -14,6 +14,7 @@ const memberProfileSelect = {
   gender: true,
   address: true,
   created_at: true,
+  updated_at: true,
   user: {
     select: {
       email: true,
@@ -117,6 +118,7 @@ export class MembersService {
           photo_url: true,
           gender: true,
           created_at: true,
+          updated_at: true,
           member_packages: {
             select: { status: true },
             orderBy: { created_at: 'desc' },
@@ -171,6 +173,7 @@ export class MembersService {
         gender: true,
         address: true,
         created_at: true,
+        updated_at: true,
         user: {
           select: { email: true },
         },

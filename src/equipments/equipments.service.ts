@@ -14,6 +14,7 @@ const equipmentSelect = {
   condition: true,
   is_active: true,
   created_at: true,
+  updated_at: true,
   photos: {
     select: { id: true, url: true, order: true },
     orderBy: { order: 'asc' as const },
