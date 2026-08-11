@@ -1,7 +1,5 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtGuard } from './common/guards/jwt.guard';
@@ -18,9 +16,7 @@ import { AnnouncementsModule } from './announcements/announcements.module';
 
 @Module({
   imports: [PrismaModule, RedisModule, AuthModule, MembersModule, PackagesModule, PackageCategoriesModule, TrainersModule, GymModule, EquipmentsModule, AttendancesModule, AnnouncementsModule],
-  controllers: [AppController],
   providers: [
-    AppService,
     {
       provide: APP_GUARD,
       useClass: JwtGuard,
