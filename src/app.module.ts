@@ -13,9 +13,10 @@ import { EquipmentsModule } from './equipments/equipments.module';
 import { AttendancesModule } from './attendances/attendances.module';
 import { RedisModule } from './redis/redis.module';
 import { AnnouncementsModule } from './announcements/announcements.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
-  imports: [PrismaModule, RedisModule, AuthModule, MembersModule, PackagesModule, PackageCategoriesModule, TrainersModule, GymModule, EquipmentsModule, AttendancesModule, AnnouncementsModule],
+  imports: [PrismaModule, RedisModule, AuthModule, HealthModule, MembersModule, PackagesModule, PackageCategoriesModule, TrainersModule, GymModule, EquipmentsModule, AttendancesModule, AnnouncementsModule],
   providers: [
     {
       provide: APP_GUARD,
