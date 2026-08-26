@@ -15,9 +15,13 @@ import { RedisModule } from './redis/redis.module';
 import { AnnouncementsModule } from './announcements/announcements.module';
 import { HealthModule } from './health/health.module';
 import { ReviewsModule } from './reviews/reviews.module';
+import { XenditModule } from './xendit/xendit.module';
+import { MemberPackagesModule } from './member-packages/member-packages.module';
+import { PaymentsModule } from './payments/payments.module';
 
 @Module({
-  imports: [PrismaModule, RedisModule, AuthModule, HealthModule, ReviewsModule, MembersModule, PackagesModule, PackageCategoriesModule, TrainersModule, GymModule, EquipmentsModule, AttendancesModule, AnnouncementsModule, ReviewsModule],
+  imports: [PrismaModule, RedisModule, AuthModule, HealthModule, ReviewsModule, MembersModule, PackagesModule, PackageCategoriesModule, TrainersModule, GymModule, EquipmentsModule, AttendancesModule, AnnouncementsModule, ReviewsModule, XenditModule, MemberPackagesModule,
+    PaymentsModule,],
   providers: [
     {
       provide: APP_GUARD,
