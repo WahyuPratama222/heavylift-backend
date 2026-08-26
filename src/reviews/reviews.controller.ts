@@ -5,6 +5,7 @@ import { PublishReviewDto } from './dto/publish-review.dto';
 import { Public } from '../common/decorators/public.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { IUser } from '../common/interfaces/user.interface';
 
 @Controller('reviews')
 export class ReviewsController {
@@ -12,8 +13,8 @@ export class ReviewsController {
 
   @Roles('member')
   @Post()
-  create(@CurrentUser('id') memberId: string, @Body() dto: CreateReviewDto) {
-    return this.reviewsService.create(memberId, dto);
+  create(@CurrentUser() user: IUser, @Body() dto: CreateReviewDto) {
+    return this.reviewsService.create(user.id, dto);
   }
 
   @Public()
