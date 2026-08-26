@@ -15,7 +15,21 @@ const REVIEW_WINDOW_DAYS = 14;
 export class ReviewsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(memberId: string, dto: CreateReviewDto) {
+  private async resolveMemberId(userId: string): Promise<string> {
+    const member = await this.prisma.member.findUnique({
+      where: { user_id: userId },
+    });
+
+    if (!member || member.deleted_at) {
+      throw new NotFoundException('Member not found');
+    }
+
+    return member.id;
+  }
+
+  async create(userId: string, dto: CreateReviewDto) {
+    const memberId = await this.resolveMemberId(userId);
+
     const memberPackage = await this.prisma.memberPackage.findUnique({
       where: { id: dto.member_package_id },
     });

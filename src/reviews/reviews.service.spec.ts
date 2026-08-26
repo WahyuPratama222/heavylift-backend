@@ -8,8 +8,15 @@ describe('ReviewsService', () => {
   let service: ReviewsService;
   let prisma: any;
 
+  const userId = 'user-1';
   const memberId = 'member-1';
   const memberPackageId = 'mp-1';
+
+  const makeMember = (overrides = {}) => ({
+    id: memberId,
+    user_id: userId,
+    ...overrides,
+  });
 
   const makeMemberPackage = (overrides = {}) => ({
     id: memberPackageId,
@@ -20,6 +27,7 @@ describe('ReviewsService', () => {
 
   beforeEach(async () => {
     prisma = {
+      member: { findUnique: jest.fn() },
       memberPackage: { findUnique: jest.fn() },
       review: {
         create: jest.fn(),
@@ -42,13 +50,14 @@ describe('ReviewsService', () => {
 
   describe('create', () => {
     it('creates a review within a valid window', async () => {
+      prisma.member.findUnique.mockResolvedValueOnce(makeMember());
       const memberPackage = makeMemberPackage();
       prisma.memberPackage.findUnique.mockResolvedValueOnce(memberPackage);
       prisma.review.create.mockResolvedValueOnce({ id: 'review-1' });
 
       jest.useFakeTimers().setSystemTime(new Date('2026-08-05T00:00:00.000Z'));
 
-      const result = await service.create(memberId, {
+      const result = await service.create(userId, {
         member_package_id: memberPackageId,
         rating: 5,
         comment: 'Great gym',
@@ -58,11 +67,23 @@ describe('ReviewsService', () => {
       jest.useRealTimers();
     });
 
+    it('throws NotFoundException when member profile does not exist', async () => {
+      prisma.member.findUnique.mockResolvedValueOnce(null);
+
+      await expect(
+        service.create(userId, {
+          member_package_id: memberPackageId,
+          rating: 5,
+        }),
+      ).rejects.toThrow(NotFoundException);
+    });
+
     it('throws NotFoundException when member package does not exist', async () => {
+      prisma.member.findUnique.mockResolvedValueOnce(makeMember());
       prisma.memberPackage.findUnique.mockResolvedValueOnce(null);
 
       await expect(
-        service.create(memberId, {
+        service.create(userId, {
           member_package_id: memberPackageId,
           rating: 5,
         }),
@@ -70,12 +91,13 @@ describe('ReviewsService', () => {
     });
 
     it('throws ForbiddenException when member package belongs to someone else', async () => {
+      prisma.member.findUnique.mockResolvedValueOnce(makeMember());
       prisma.memberPackage.findUnique.mockResolvedValueOnce(
         makeMemberPackage({ member_id: 'other-member' }),
       );
 
       await expect(
-        service.create(memberId, {
+        service.create(userId, {
           member_package_id: memberPackageId,
           rating: 5,
         }),
@@ -83,6 +105,7 @@ describe('ReviewsService', () => {
     });
 
     it('throws BadRequestException when package has not ended yet', async () => {
+      prisma.member.findUnique.mockResolvedValueOnce(makeMember());
       prisma.memberPackage.findUnique.mockResolvedValueOnce(
         makeMemberPackage({ end_date: new Date('2026-12-01T00:00:00.000Z') }),
       );
@@ -90,7 +113,7 @@ describe('ReviewsService', () => {
       jest.useFakeTimers().setSystemTime(new Date('2026-08-05T00:00:00.000Z'));
 
       await expect(
-        service.create(memberId, {
+        service.create(userId, {
           member_package_id: memberPackageId,
           rating: 5,
         }),
@@ -100,6 +123,7 @@ describe('ReviewsService', () => {
     });
 
     it('throws BadRequestException when the 14-day window has passed', async () => {
+      prisma.member.findUnique.mockResolvedValueOnce(makeMember());
       prisma.memberPackage.findUnique.mockResolvedValueOnce(
         makeMemberPackage({ end_date: new Date('2026-06-01T00:00:00.000Z') }),
       );
@@ -107,7 +131,7 @@ describe('ReviewsService', () => {
       jest.useFakeTimers().setSystemTime(new Date('2026-08-05T00:00:00.000Z'));
 
       await expect(
-        service.create(memberId, {
+        service.create(userId, {
           member_package_id: memberPackageId,
           rating: 5,
         }),
@@ -117,6 +141,7 @@ describe('ReviewsService', () => {
     });
 
     it('throws ConflictException when member package has already been reviewed', async () => {
+      prisma.member.findUnique.mockResolvedValueOnce(makeMember());
       prisma.memberPackage.findUnique.mockResolvedValueOnce(makeMemberPackage());
 
       jest.useFakeTimers().setSystemTime(new Date('2026-08-05T00:00:00.000Z'));
@@ -129,7 +154,7 @@ describe('ReviewsService', () => {
       );
 
       await expect(
-        service.create(memberId, {
+        service.create(userId, {
           member_package_id: memberPackageId,
           rating: 5,
         }),
