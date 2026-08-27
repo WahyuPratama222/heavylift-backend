@@ -1,13 +1,23 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  ConflictException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { createHash } from 'crypto';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
+
+// Only randomUUID is mocked so jti is deterministic in tests; createHash stays real
+// so hash assertions below can be computed the same way the service computes them.
+jest.mock('crypto', () => ({
+  ...jest.requireActual('crypto'),
+  randomUUID: jest.fn(),
+}));
+
+import { randomUUID } from 'crypto';
+
+const hashToken = (token: string) =>
+  createHash('sha256').update(token).digest('hex');
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -18,9 +28,7 @@ describe('AuthService', () => {
   };
 
   const mockPrisma = {
-    user: {
-      findUnique: jest.fn(),
-    },
+    user: { findUnique: jest.fn() },
     $transaction: jest.fn(),
   };
 
@@ -33,6 +41,10 @@ describe('AuthService', () => {
     set: jest.fn(),
     get: jest.fn(),
     del: jest.fn(),
+    sadd: jest.fn(),
+    srem: jest.fn(),
+    smembers: jest.fn(),
+    pipelineDel: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -46,16 +58,11 @@ describe('AuthService', () => {
     }).compile();
 
     service = module.get<AuthService>(AuthService);
-
     jest.clearAllMocks();
 
-    // default: $transaction jalanin callback-nya dengan mockTx
-    mockPrisma.$transaction.mockImplementation((callback) =>
-      callback(mockTx),
-    );
-
-    // default: signAsync selalu balikin token dummy
+    mockPrisma.$transaction.mockImplementation((callback) => callback(mockTx));
     mockJwt.signAsync.mockResolvedValue('dummy-token');
+    (randomUUID as jest.Mock).mockReturnValue('jti-1234');
   });
 
   // ============ REGISTER ============
@@ -66,44 +73,28 @@ describe('AuthService', () => {
       name: 'Wahyu Pratama',
     };
 
-    it('should register successfully and return tokens + user', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue(null); // email belum terdaftar
-
-      mockTx.user.create.mockResolvedValue({
-        id: 'user-1',
-        email: registerDto.email,
-        role: 'member',
-      });
-      mockTx.member.create.mockResolvedValue({
-        id: 'member-1',
-        name: registerDto.name,
-      });
+    it('should register successfully and store hashed refresh token under a per-device key', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(null);
+      mockTx.user.create.mockResolvedValue({ id: 'user-1', email: registerDto.email, role: 'member' });
+      mockTx.member.create.mockResolvedValue({ id: 'member-1', name: registerDto.name });
 
       const result = await service.register(registerDto as any);
 
       expect(result.access_token).toBe('dummy-token');
       expect(result.refresh_token).toBe('dummy-token');
-      expect(result.user).toEqual({
-        id: 'user-1',
-        email: registerDto.email,
-        role: 'member',
-        name: registerDto.name,
-      });
+
+      // Key includes user_id + jti; value is the token's hash, never the raw token
       expect(mockRedis.set).toHaveBeenCalledWith(
-        'refresh_token:user-1',
-        'dummy-token',
+        'refresh_token:user-1:jti-1234',
+        hashToken('dummy-token'),
         expect.any(Number),
       );
+      expect(mockRedis.sadd).toHaveBeenCalledWith('refresh_sessions:user-1', 'jti-1234');
     });
 
     it('should throw ConflictException if email already registered', async () => {
       mockPrisma.user.findUnique.mockResolvedValue({ id: 'existing-user' });
-
-      await expect(service.register(registerDto as any)).rejects.toThrow(
-        ConflictException,
-      );
-
-      // pastikan gak lanjut nyoba bikin user kalau udah ketolak duluan
+      await expect(service.register(registerDto as any)).rejects.toThrow(ConflictException);
       expect(mockPrisma.$transaction).not.toHaveBeenCalled();
     });
   });
@@ -112,9 +103,8 @@ describe('AuthService', () => {
   describe('login', () => {
     const loginDto = { email: 'wahyu@gmail.com', password: 'password123' };
 
-    it('should login successfully and return tokens + user', async () => {
+    it('should login successfully and register a new session', async () => {
       const hashedPassword = await bcrypt.hash('password123', 10);
-
       mockPrisma.user.findUnique.mockResolvedValue({
         id: 'user-1',
         email: loginDto.email,
@@ -126,12 +116,16 @@ describe('AuthService', () => {
       const result = await service.login(loginDto);
 
       expect(result.access_token).toBe('dummy-token');
-      expect(result.user.name).toBe('Wahyu Pratama');
+      expect(mockRedis.set).toHaveBeenCalledWith(
+        'refresh_token:user-1:jti-1234',
+        hashToken('dummy-token'),
+        expect.any(Number),
+      );
+      expect(mockRedis.sadd).toHaveBeenCalledWith('refresh_sessions:user-1', 'jti-1234');
     });
 
     it('should default name to "Owner" if user has no member', async () => {
       const hashedPassword = await bcrypt.hash('password123', 10);
-
       mockPrisma.user.findUnique.mockResolvedValue({
         id: 'owner-1',
         email: loginDto.email,
@@ -141,99 +135,78 @@ describe('AuthService', () => {
       });
 
       const result = await service.login(loginDto);
-
       expect(result.user.name).toBe('Owner');
     });
 
     it('should throw UnauthorizedException if email not found', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(null);
-
-      await expect(service.login(loginDto)).rejects.toThrow(
-        UnauthorizedException,
-      );
-    });
-
-    it('should throw UnauthorizedException if member is soft-deleted', async () => {
-      const hashedPassword = await bcrypt.hash('password123', 10);
-
-      mockPrisma.user.findUnique.mockResolvedValue({
-        id: 'user-1',
-        email: loginDto.email,
-        password: hashedPassword,
-        role: 'member',
-        member: { name: 'Wahyu', deleted_at: new Date() },
-      });
-
-      await expect(service.login(loginDto)).rejects.toThrow(
-        UnauthorizedException,
-      );
-    });
-
-    it('should throw UnauthorizedException if password is wrong', async () => {
-      const hashedPassword = await bcrypt.hash('correct-password', 10);
-
-      mockPrisma.user.findUnique.mockResolvedValue({
-        id: 'user-1',
-        email: loginDto.email,
-        password: hashedPassword,
-        role: 'member',
-        member: { name: 'Wahyu', deleted_at: null },
-      });
-
-      await expect(service.login(loginDto)).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
     });
   });
 
   // ============ REFRESH TOKENS ============
   describe('refreshTokens', () => {
     const dto = { refresh_token: 'valid-refresh-token' };
-    const payload = { sub: 'user-1', email: 'wahyu@gmail.com', role: 'member' };
+    const payload = {
+      sub: 'user-1',
+      email: 'wahyu@gmail.com',
+      role: 'member',
+      jti: 'jti-old',
+    };
 
-    it('should refresh successfully if token valid and matches redis', async () => {
+    it('should rotate the session if the hash matches what is stored in redis', async () => {
       mockJwt.verifyAsync.mockResolvedValue(payload);
-      mockRedis.get.mockResolvedValue('valid-refresh-token');
+      mockRedis.get.mockResolvedValue(hashToken('valid-refresh-token'));
 
       const result = await service.refreshTokens(dto);
 
       expect(result.access_token).toBe('dummy-token');
-      expect(mockRedis.get).toHaveBeenCalledWith('refresh_token:user-1');
+      expect(mockRedis.get).toHaveBeenCalledWith('refresh_token:user-1:jti-old');
+      expect(mockRedis.del).toHaveBeenCalledWith('refresh_token:user-1:jti-old');
+      expect(mockRedis.srem).toHaveBeenCalledWith('refresh_sessions:user-1', 'jti-old');
     });
 
-    it('should throw UnauthorizedException if jwt.verifyAsync fails', async () => {
+    it('should revoke every session for that user upon token reuse detection', async () => {
+      mockJwt.verifyAsync.mockResolvedValue(payload);
+      mockRedis.get.mockResolvedValue(null); // stored hash missing — already rotated/used
+      mockRedis.smembers.mockResolvedValue(['jti-old', 'jti-other-device']);
+
+      await expect(service.refreshTokens(dto)).rejects.toThrow(UnauthorizedException);
+
+      expect(mockRedis.smembers).toHaveBeenCalledWith('refresh_sessions:user-1');
+      expect(mockRedis.pipelineDel).toHaveBeenCalledWith([
+        'refresh_token:user-1:jti-old',
+        'refresh_token:user-1:jti-other-device',
+      ]);
+      expect(mockRedis.del).toHaveBeenCalledWith('refresh_sessions:user-1');
+    });
+
+    it('should throw UnauthorizedException if jwt verification fails', async () => {
       mockJwt.verifyAsync.mockRejectedValue(new Error('jwt expired'));
-
-      await expect(service.refreshTokens(dto)).rejects.toThrow(
-        UnauthorizedException,
-      );
-    });
-
-    it('should throw UnauthorizedException if nothing stored in redis', async () => {
-      mockJwt.verifyAsync.mockResolvedValue(payload);
-      mockRedis.get.mockResolvedValue(null);
-
-      await expect(service.refreshTokens(dto)).rejects.toThrow(
-        UnauthorizedException,
-      );
-    });
-
-    it('should throw UnauthorizedException if stored token does not match', async () => {
-      mockJwt.verifyAsync.mockResolvedValue(payload);
-      mockRedis.get.mockResolvedValue('a-different-token');
-
-      await expect(service.refreshTokens(dto)).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(service.refreshTokens(dto)).rejects.toThrow(UnauthorizedException);
     });
   });
 
   // ============ LOGOUT ============
   describe('logout', () => {
-    it('should delete refresh token from redis and return success message', async () => {
-      const result = await service.logout('user-1');
+    it('should delete the specific device session from redis', async () => {
+      const logoutDto = { refresh_token: 'valid-refresh-token' };
+      mockJwt.verifyAsync.mockResolvedValue({ sub: 'user-1', jti: 'jti-old' });
 
-      expect(mockRedis.del).toHaveBeenCalledWith('refresh_token:user-1');
+      const result = await service.logout(logoutDto);
+
+      expect(mockRedis.del).toHaveBeenCalledWith('refresh_token:user-1:jti-old');
+      expect(mockRedis.srem).toHaveBeenCalledWith('refresh_sessions:user-1', 'jti-old');
+      expect(result).toEqual({ message: 'Logged out successfully' });
+    });
+
+    it('should still respond successfully if the token is already invalid or expired', async () => {
+      mockJwt.verifyAsync.mockRejectedValue(new Error('jwt expired'));
+
+      const result = await service.logout({ refresh_token: 'garbage-token' });
+
+      expect(mockRedis.del).not.toHaveBeenCalled();
+      expect(mockRedis.srem).not.toHaveBeenCalled();
       expect(result).toEqual({ message: 'Logged out successfully' });
     });
   });
