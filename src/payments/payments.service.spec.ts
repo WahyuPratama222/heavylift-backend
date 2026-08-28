@@ -17,10 +17,12 @@ describe('PaymentsService', () => {
         findUnique: jest.fn(),
         update: jest.fn(),
         findMany: jest.fn(),
+        count: jest.fn(),
       },
       memberPackage: {
         update: jest.fn(),
       },
+      $transaction: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -103,12 +105,12 @@ describe('PaymentsService', () => {
   });
 
   describe('findAll', () => {
-    it('returns all payments', async () => {
-      prisma.payment.findMany.mockResolvedValueOnce([{ id: 'payment-1' }]);
+    it('returns paginated payments', async () => {
+      prisma.$transaction.mockResolvedValueOnce([[{ id: 'payment-1' }], 1]);
 
-      const result = await service.findAll();
+      const result = await service.findAll({} as any);
 
-      expect(result).toEqual([{ id: 'payment-1' }]);
+      expect(result.data).toEqual([{ id: 'payment-1' }]);
     });
   });
 

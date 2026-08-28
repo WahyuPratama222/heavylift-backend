@@ -1,7 +1,8 @@
-import { Body, Controller, Get, Headers, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Headers, HttpCode, HttpStatus, Param, Post, Query } from '@nestjs/common';
 import { PaymentsService } from './payments.service';
 import { Public } from '../common/decorators/public.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
+import { PaginationDto } from '../common/dto/pagination.dto';
 
 @Controller('payments')
 export class PaymentsController {
@@ -9,6 +10,7 @@ export class PaymentsController {
 
   @Public()
   @Post('webhook')
+  @HttpCode(HttpStatus.OK)
   handleWebhook(
     @Headers('x-callback-token') callbackToken: string,
     @Body() payload: any,
@@ -18,8 +20,8 @@ export class PaymentsController {
 
   @Roles('owner')
   @Get()
-  findAll() {
-    return this.paymentsService.findAll();
+  findAll(@Query() query: PaginationDto) {
+    return this.paymentsService.findAll(query);
   }
 
   @Roles('owner')

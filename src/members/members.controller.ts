@@ -16,6 +16,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { IUser } from '../common/interfaces/user.interface';
 
+
 @Controller('members')
 export class MembersController {
   constructor(private readonly membersService: MembersService) {}
@@ -45,15 +46,8 @@ export class MembersController {
   @Roles('owner')
   @Get()
   findAll(@Query() query: FindMembersDto) {
-    return this.membersService.findAll(
-      query.search,
-      query.status,
-      query.gender,
-      query.page ? parseInt(query.page) : 1,
-      query.limit ? parseInt(query.limit) : 10,
-    );
+    return this.membersService.findAll(query);
   }
-
   // owner - detail 1 member
   @Roles('owner')
   @Get(':id')

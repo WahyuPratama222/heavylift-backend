@@ -1,8 +1,7 @@
-// find-attendances.dto.ts
-import { IsString, IsOptional, IsDateString, IsInt } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsString, IsOptional, IsDateString } from 'class-validator';
+import { PaginationDto } from '../../common/dto/pagination.dto';
 
-export class FindAttendancesDto {
+export class FindAttendancesDto extends PaginationDto {
   @IsString()
   @IsOptional()
   member_id?: string;
@@ -14,14 +13,4 @@ export class FindAttendancesDto {
   @IsDateString()
   @IsOptional()
   date_to?: string;
-
-  @Type(() => Number)
-  @IsInt()
-  @IsOptional()
-  page?: number = 1;
-
-  @Type(() => Number)
-  @IsInt()
-  @IsOptional()
-  limit?: number = 20;
 }

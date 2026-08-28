@@ -6,12 +6,14 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { TrainersService } from './trainers.service';
 import { CreateTrainerDto } from './dto/create-trainer.dto';
 import { UpdateTrainerDto } from './dto/update-trainer.dto';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Public } from '../common/decorators/public.decorator';
+import { PaginationDto } from '../common/dto/pagination.dto';
 
 @Controller('trainers')
 export class TrainersController {
@@ -25,8 +27,8 @@ export class TrainersController {
 
   @Public()
   @Get()
-  findAll() {
-    return this.trainersService.findAll();
+  findAll(@Query() query: PaginationDto) {
+    return this.trainersService.findAll(query);
   }
 
   @Roles('owner')

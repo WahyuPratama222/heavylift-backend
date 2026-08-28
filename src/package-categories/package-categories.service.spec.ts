@@ -14,13 +14,14 @@ describe('PackageCategoriesService', () => {
       findUnique: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
+      count: jest.fn(),
     },
     package: {
       count: jest.fn(),
     },
+    $transaction: jest.fn(),
   };
 
-  // error asli dari Prisma, dipakai buat nyimulasiin duplicate name (unique constraint)
   const p2002Error = new Prisma.PrismaClientKnownRequestError(
     'Unique constraint failed on the fields: (`name`)',
     { code: 'P2002', clientVersion: '5.0.0' },
@@ -66,16 +67,17 @@ describe('PackageCategoriesService', () => {
   // ============ findAll ============
   describe('findAll', () => {
     it('should return all categories ordered by created_at desc', async () => {
-      mockPrisma.packageCategory.findMany.mockResolvedValue([
-        { id: 'cat-1', name: 'Bulanan' },
+      mockPrisma.$transaction.mockResolvedValue([
+        [{ id: 'cat-1', name: 'Bulanan' }],
+        1,
       ]);
 
-      const result = await service.findAll();
+      const result = await service.findAll({} as any);
 
-      expect(mockPrisma.packageCategory.findMany).toHaveBeenCalledWith({
-        orderBy: { created_at: 'desc' },
-      });
-      expect(result).toHaveLength(1);
+      expect(mockPrisma.packageCategory.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ orderBy: { created_at: 'desc' } }),
+      );
+      expect(result.data).toHaveLength(1);
     });
   });
 

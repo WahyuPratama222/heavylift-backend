@@ -1,6 +1,8 @@
 import { Injectable, ConflictException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { FindAttendancesDto } from './dto/find-attendance.dto';
+import { PaginationDto } from '../common/dto/pagination.dto';
+import { paginate } from '../common/utils/paginate.util';
 
 const attendanceSelect = {
   id: true,
@@ -77,14 +79,18 @@ export class AttendancesService {
     });
   }
 
-  async findMyHistory(userId: string) {
+  async findMyHistory(userId: string, query: PaginationDto) {
     const memberId = await this.resolveMemberId(userId);
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
 
-    return this.prisma.attendance.findMany({
-      where: { member_id: memberId },
-      orderBy: { check_in_at: 'desc' },
-      select: attendanceSelect,
-    });
+    return paginate(
+      this.prisma,
+      this.prisma.attendance,
+      { where: { member_id: memberId }, orderBy: { check_in_at: 'desc' }, select: attendanceSelect },
+      page,
+      limit,
+    );
   }
 
   async findAll(query: FindAttendancesDto) {
@@ -103,30 +109,21 @@ export class AttendancesService {
         : {}),
     };
 
-    const [data, total] = await this.prisma.$transaction([
-      this.prisma.attendance.findMany({
+    return paginate(
+      this.prisma,
+      this.prisma.attendance,
+      {
         where,
         orderBy: { check_in_at: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit,
         select: {
           ...attendanceSelect,
           member: {
             select: { id: true, name: true },
           },
         },
-      }),
-      this.prisma.attendance.count({ where }),
-    ]);
-
-    return {
-      data,
-      meta: {
-        total,
-        page,
-        limit,
-        total_pages: Math.ceil(total / limit),
       },
-    };
+      page,
+      limit,
+    );
   }
 }

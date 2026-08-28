@@ -68,7 +68,7 @@ describe('EquipmentsService', () => {
   // ============ findAll ============
   describe('findAll', () => {
     it('should return all active equipments by default', async () => {
-      mockPrisma.equipment.findMany.mockResolvedValue([mockEquipment]);
+      mockPrisma.$transaction.mockResolvedValue([[mockEquipment], 1]);
 
       await service.findAll({} as any);
 
@@ -80,7 +80,7 @@ describe('EquipmentsService', () => {
     });
 
     it('should apply search filter', async () => {
-      mockPrisma.equipment.findMany.mockResolvedValue([]);
+      mockPrisma.$transaction.mockResolvedValue([[], 0]);
 
       await service.findAll({ search: 'tread' } as any);
 
@@ -94,7 +94,7 @@ describe('EquipmentsService', () => {
     });
 
     it('should apply category filter', async () => {
-      mockPrisma.equipment.findMany.mockResolvedValue([]);
+      mockPrisma.$transaction.mockResolvedValue([[], 0]);
 
       await service.findAll({ category: 'Cardio' } as any);
 
@@ -105,7 +105,7 @@ describe('EquipmentsService', () => {
       );
     });
   });
-
+  
   // ============ findOne ============
   describe('findOne', () => {
     it('should return an equipment', async () => {

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ReviewsService } from './reviews.service';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { PublishReviewDto } from './dto/publish-review.dto';
@@ -6,6 +6,7 @@ import { Public } from '../common/decorators/public.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { IUser } from '../common/interfaces/user.interface';
+import { FindReviewsDto } from './dto/find-review.dto';
 
 @Controller('reviews')
 export class ReviewsController {
@@ -19,8 +20,8 @@ export class ReviewsController {
 
   @Public()
   @Get()
-  findPublished() {
-    return this.reviewsService.findPublished();
+  findPublished(@Query() query: FindReviewsDto) {
+    return this.reviewsService.findPublished(query);
   }
 
   @Roles('owner')

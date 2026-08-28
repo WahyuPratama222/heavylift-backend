@@ -3,6 +3,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreatePackageDto } from './dto/create-package.dto';
 import { UpdatePackageDto } from './dto/update-package.dto';
 import { handlePrismaError } from '../common/helpers/prisma-error.helper';
+import { paginate } from '../common/utils/paginate.util';
+import { FindPackagesDto } from './dto/find-package.dto';
 
 const packageSelect = {
   id: true,
@@ -51,19 +53,26 @@ export class PackagesService {
     }
   }
 
-  async findAll(categoryId?: string) {
-    const packages = await this.prisma.package.findMany({
-      where: {
-        is_active: true,
-        ...(categoryId && { category_id: categoryId }),
+  async findAll(query: FindPackagesDto) {
+    const { category_id, page = 1, limit = 10 } = query;
+
+    const result = await paginate(
+      this.prisma,
+      this.prisma.package,
+      {
+        where: {
+          is_active: true,
+          ...(category_id && { category_id }),
+        },
+        select: packageSelect,
+        orderBy: { created_at: 'desc' },
       },
-      select: packageSelect,
-      orderBy: { created_at: 'desc' },
-    });
+      page,
+      limit,
+    );
 
-    return packages.map(formatPackage);
+    return { ...result, data: result.data.map(formatPackage) };
   }
-
   async findOne(id: string) {
     const pkg = await this.prisma.package.findUnique({
       where: { id },

@@ -28,7 +28,7 @@ export class PackagesController {
   @Public()
   @Get()
   findAll(@Query() query: FindPackagesDto) {
-    return this.packagesService.findAll(query.category_id);
+    return this.packagesService.findAll(query);
   }
 
   @Public()

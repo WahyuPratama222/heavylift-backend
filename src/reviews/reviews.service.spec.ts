@@ -34,7 +34,9 @@ describe('ReviewsService', () => {
         findMany: jest.fn(),
         findUnique: jest.fn(),
         update: jest.fn(),
+        count: jest.fn(),
       },
+      $transaction: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -166,14 +168,14 @@ describe('ReviewsService', () => {
 
   describe('findPublished', () => {
     it('returns only published reviews', async () => {
-      prisma.review.findMany.mockResolvedValueOnce([{ id: 'review-1' }]);
+      prisma.$transaction.mockResolvedValue([[{ id: 'review-1' }], 1]);
 
-      const result = await service.findPublished();
+      const result = await service.findPublished({} as any);
 
       expect(prisma.review.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: { is_published: true } }),
       );
-      expect(result).toEqual([{ id: 'review-1' }]);
+      expect(result.data).toEqual([{ id: 'review-1' }]);
     });
   });
 

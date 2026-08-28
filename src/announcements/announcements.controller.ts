@@ -6,10 +6,12 @@ import {
   Delete,
   Body,
   Param,
+  Query,
 } from '@nestjs/common';
 import { AnnouncementsService } from './announcements.service';
 import { CreateAnnouncementDto } from './dto/create-announcement.dto';
 import { UpdateAnnouncementDto } from './dto/update-announcement.dto';
+import { FindAnnouncementsDto } from './dto/find-announcement.dto';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { IUser } from '../common/interfaces/user.interface';
@@ -28,8 +30,8 @@ export class AnnouncementsController {
   // member - list announcement yang relevan buat dia
   @Roles('member')
   @Get()
-  findAll(@CurrentUser() user: IUser) {
-    return this.announcementsService.findAll(user.id);
+  findAll(@CurrentUser() user: IUser, @Query() query: FindAnnouncementsDto) {
+    return this.announcementsService.findAll(user.id, query);
   }
 
   // owner - update announcement
