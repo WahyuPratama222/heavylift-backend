@@ -1,5 +1,7 @@
 import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { PaginationDto } from '../common/dto/pagination.dto';
+import { paginate } from '../common/utils/paginate.util';
 
 @Injectable()
 export class PaymentsService {
@@ -39,10 +41,10 @@ export class PaymentsService {
     return { message: 'Webhook received' };
   }
 
-  async findAll() {
-    return this.prisma.payment.findMany({
-      orderBy: { created_at: 'desc' },
-    });
+  async findAll(query: PaginationDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    return paginate(this.prisma, this.prisma.payment, { orderBy: { created_at: 'desc' } }, page, limit);
   }
 
   async findOne(id: string) {
