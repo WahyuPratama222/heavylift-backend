@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtGuard } from './common/guards/jwt.guard';
@@ -20,9 +21,21 @@ import { MemberPackagesModule } from './member-packages/member-packages.module';
 import { PaymentsModule } from './payments/payments.module';
 
 @Module({
-  imports: [PrismaModule, RedisModule, AuthModule, HealthModule, ReviewsModule, MembersModule, PackagesModule, PackageCategoriesModule, TrainersModule, GymModule, EquipmentsModule, AttendancesModule, AnnouncementsModule, ReviewsModule, XenditModule, MemberPackagesModule,
+  imports: [
+    ThrottlerModule.forRoot([
+      {
+        name: 'default',
+        ttl: 60000,
+        limit: 100,
+      },
+    ]),
+    PrismaModule, RedisModule, AuthModule, HealthModule, ReviewsModule, MembersModule, PackagesModule, PackageCategoriesModule, TrainersModule, GymModule, EquipmentsModule, AttendancesModule, AnnouncementsModule, ReviewsModule, XenditModule, MemberPackagesModule,
     PaymentsModule,],
   providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
     {
       provide: APP_GUARD,
       useClass: JwtGuard,
