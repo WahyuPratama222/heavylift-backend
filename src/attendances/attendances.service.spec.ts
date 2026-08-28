@@ -158,11 +158,13 @@ describe('AttendancesService', () => {
 
   // ============ findMyHistory ============
   describe('findMyHistory', () => {
-    it('should return attendance history ordered by check_in_at desc', async () => {
+    it('should return paginated attendance history ordered by check_in_at desc', async () => {
       mockPrisma.member.findUnique.mockResolvedValue(mockMember);
       mockPrisma.attendance.findMany.mockResolvedValue([{ id: 'att-1' }]);
+      mockPrisma.attendance.count.mockResolvedValue(1);
+      mockPrisma.$transaction.mockResolvedValue([[{ id: 'att-1' }], 1]);
 
-      const result = await service.findMyHistory('user-1');
+      const result = await service.findMyHistory('user-1', {} as any);
 
       expect(mockPrisma.attendance.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -170,7 +172,24 @@ describe('AttendancesService', () => {
           orderBy: { check_in_at: 'desc' },
         }),
       );
-      expect(result).toEqual([{ id: 'att-1' }]);
+      expect(result.data).toEqual([{ id: 'att-1' }]);
+      expect(result.meta).toEqual({
+        total: 1,
+        page: 1,
+        limit: 10,
+        total_pages: 1,
+      });
+    });
+
+    it('should respect custom page/limit from query', async () => {
+      mockPrisma.member.findUnique.mockResolvedValue(mockMember);
+      mockPrisma.$transaction.mockResolvedValue([[], 0]);
+
+      await service.findMyHistory('user-1', { page: 2, limit: 5 } as any);
+
+      expect(mockPrisma.attendance.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ skip: 5, take: 5 }),
+      );
     });
   });
 
