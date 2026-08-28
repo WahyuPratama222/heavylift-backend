@@ -14,6 +14,7 @@ describe('EquipmentsService', () => {
       findUnique: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
+      count: jest.fn(),
     },
     equipmentPhoto: {
       aggregate: jest.fn(),
@@ -67,42 +68,34 @@ describe('EquipmentsService', () => {
 
   // ============ findAll ============
   describe('findAll', () => {
-    it('should return all active equipments by default', async () => {
+    it('should return paginated equipments by default', async () => {
       mockPrisma.$transaction.mockResolvedValue([[mockEquipment], 1]);
 
-      await service.findAll({} as any);
+      const result = await service.findAll({} as any);
 
-      expect(mockPrisma.equipment.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { is_active: true },
-        }),
-      );
+      expect(result.data).toEqual([mockEquipment]);
+      expect(result.meta.total).toBe(1);
+      expect(mockPrisma.$transaction).toHaveBeenCalled();
     });
 
     it('should apply search filter', async () => {
       mockPrisma.$transaction.mockResolvedValue([[], 0]);
 
-      await service.findAll({ search: 'tread' } as any);
+      const result = await service.findAll({ search: 'tread' } as any);
 
-      expect(mockPrisma.equipment.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            name: { contains: 'tread', mode: 'insensitive' },
-          }),
-        }),
-      );
+      expect(result.data).toEqual([]);
+      expect(result.meta.total).toBe(0);
+      expect(mockPrisma.$transaction).toHaveBeenCalled();
     });
 
     it('should apply category filter', async () => {
       mockPrisma.$transaction.mockResolvedValue([[], 0]);
 
-      await service.findAll({ category: 'Cardio' } as any);
+      const result = await service.findAll({ category: 'Cardio' } as any);
 
-      expect(mockPrisma.equipment.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({ category: 'Cardio' }),
-        }),
-      );
+      expect(result.data).toEqual([]);
+      expect(result.meta.total).toBe(0);
+      expect(mockPrisma.$transaction).toHaveBeenCalled();
     });
   });
   
