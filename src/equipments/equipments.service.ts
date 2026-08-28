@@ -5,6 +5,7 @@ import { UpdateEquipmentDto } from './dto/update-equipment.dto';
 import { FindEquipmentsDto } from './dto/find-equipment.dto';
 import { AddEquipmentPhotosDto } from './dto/add-equipment-photo.dto';
 import { handlePrismaError } from '../common/helpers/prisma-error.helper';
+import { paginate } from '../common/utils/paginate.util';
 
 const equipmentSelect = {
   id: true,
@@ -37,16 +38,22 @@ export class EquipmentsService {
   }
 
   async findAll(query: FindEquipmentsDto) {
-    return this.prisma.equipment.findMany({
-      where: {
-        is_active: true,
-        ...(query.search && {
-          name: { contains: query.search, mode: 'insensitive' as const },
-        }),
-        ...(query.category && { category: query.category }),
+    const { search, category, page = 1, limit = 10 } = query;
+
+    return paginate(
+      this.prisma,
+      this.prisma.equipment,
+      {
+        where: {
+          is_active: true,
+          ...(search && { name: { contains: search, mode: 'insensitive' as const } }),
+          ...(category && { category }),
+        },
+        select: equipmentSelect,
       },
-      select: equipmentSelect,
-    });
+      page,
+      limit,
+    );
   }
 
   async findOne(id: string) {
