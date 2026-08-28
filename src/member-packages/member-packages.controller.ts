@@ -1,9 +1,10 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { MemberPackagesService } from './member-packages.service';
 import { CreateMemberPackageDto } from './dto/create-member-package.dto';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { IUser } from '../common/interfaces/user.interface';
+import { PaginationDto } from '../common/dto/pagination.dto';
 
 @Controller('member-packages')
 export class MemberPackagesController {
@@ -17,13 +18,13 @@ export class MemberPackagesController {
 
   @Roles('member')
   @Get('my')
-  findMy(@CurrentUser() user: IUser) {
-    return this.memberPackagesService.findMy(user.id);
+  findMy(@CurrentUser() user: IUser, @Query() query: PaginationDto) {
+    return this.memberPackagesService.findMy(user.id, query);
   }
 
   @Roles('owner')
   @Get()
-  findAll() {
-    return this.memberPackagesService.findAll();
+  findAll(@Query() query: PaginationDto) {
+    return this.memberPackagesService.findAll(query);
   }
 }

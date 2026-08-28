@@ -2,6 +2,8 @@ import { ConflictException, Injectable, NotFoundException } from '@nestjs/common
 import { PrismaService } from '../prisma/prisma.service';
 import { XenditService } from '../xendit/xendit.service';
 import { CreateMemberPackageDto } from './dto/create-member-package.dto';
+import { PaginationDto } from '../common/dto/pagination.dto';
+import { paginate } from '../common/utils/paginate.util';
 
 @Injectable()
 export class MemberPackagesService {
@@ -89,37 +91,30 @@ export class MemberPackagesService {
     };
   }
 
-  async findMy(userId: string) {
+  async findMy(userId: string, query: PaginationDto) {
     const memberId = await this.resolveMemberId(userId);
-
-    return this.prisma.memberPackage.findMany({
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    return paginate(this.prisma, this.prisma.memberPackage, {
       where: { member_id: memberId },
       orderBy: { created_at: 'desc' },
       include: {
         package: { select: { name: true, price: true } },
-        payments: {
-          select: {
-            id: true,
-            amount: true,
-            status: true,
-            payment_method: true,
-            paid_at: true,
-          },
-        },
+        payments: { select: { id: true, amount: true, status: true, payment_method: true, paid_at: true } },
       },
-    });
+    }, page, limit);
   }
 
-  async findAll() {
-    return this.prisma.memberPackage.findMany({
+  async findAll(query: PaginationDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    return paginate(this.prisma, this.prisma.memberPackage, {
       orderBy: { created_at: 'desc' },
       include: {
         member: { select: { id: true, name: true } },
         package: { select: { name: true, price: true } },
-        payments: {
-          select: { id: true, amount: true, status: true, paid_at: true },
-        },
+        payments: { select: { id: true, amount: true, status: true, paid_at: true } },
       },
-    });
+    }, page, limit);
   }
 }

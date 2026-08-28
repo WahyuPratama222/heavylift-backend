@@ -37,8 +37,10 @@ describe('MemberPackagesService', () => {
         findFirst: jest.fn(),
         create: jest.fn(),
         findMany: jest.fn(),
+        count: jest.fn(),
       },
       payment: { create: jest.fn() },
+      $transaction: jest.fn(),
     };
 
     xendit = {
@@ -133,32 +135,34 @@ describe('MemberPackagesService', () => {
   });
 
   describe('findMy', () => {
-    it('returns member packages for the resolved member', async () => {
+    it('returns paginated member packages for the resolved member', async () => {
       prisma.member.findUnique.mockResolvedValueOnce(makeMember());
-      prisma.memberPackage.findMany.mockResolvedValueOnce([{ id: 'mp-1' }]);
+      prisma.$transaction.mockResolvedValueOnce([[{ id: 'mp-1' }], 1]);
 
-      const result = await service.findMy(userId);
+      const result = await service.findMy(userId, {} as any);
 
       expect(prisma.memberPackage.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: { member_id: memberId } }),
       );
-      expect(result).toEqual([{ id: 'mp-1' }]);
+      expect(result.data).toEqual([{ id: 'mp-1' }]);
     });
 
     it('throws NotFoundException when member profile does not exist', async () => {
       prisma.member.findUnique.mockResolvedValueOnce(null);
 
-      await expect(service.findMy(userId)).rejects.toThrow(NotFoundException);
+      await expect(service.findMy(userId, {} as any)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
   describe('findAll', () => {
-    it('returns all member packages', async () => {
-      prisma.memberPackage.findMany.mockResolvedValueOnce([{ id: 'mp-1' }]);
+    it('returns all member packages paginated', async () => {
+      prisma.$transaction.mockResolvedValueOnce([[{ id: 'mp-1' }], 1]);
 
-      const result = await service.findAll();
+      const result = await service.findAll({} as any);
 
-      expect(result).toEqual([{ id: 'mp-1' }]);
+      expect(result.data).toEqual([{ id: 'mp-1' }]);
     });
   });
 });
