@@ -71,8 +71,8 @@ describe('MembersService', () => {
 
     it('should update profile and convert date_of_birth to Date', async () => {
       mockPrisma.member.findUnique
-        .mockResolvedValueOnce({ id: 'member-1', deleted_at: null }) // cek exists
-        .mockResolvedValueOnce(undefined); // gak dipakai lagi
+        .mockResolvedValueOnce({ id: 'member-1', deleted_at: null })
+        .mockResolvedValueOnce(undefined);
 
       mockPrisma.member.update.mockResolvedValue({
         id: 'member-1',
@@ -151,7 +151,7 @@ describe('MembersService', () => {
         1,
       ]);
 
-      const result = await service.findAll(undefined, undefined, undefined, 1, 10);
+      const result = await service.findAll({ page: 1, limit: 10 } as any);
 
       expect(result.meta).toEqual({
         total: 1,
@@ -167,7 +167,7 @@ describe('MembersService', () => {
         1,
       ]);
 
-      const result = await service.findAll();
+      const result = await service.findAll({} as any);
 
       expect(result.data[0].status).toBe('no_package');
     });
@@ -178,7 +178,7 @@ describe('MembersService', () => {
         1,
       ]);
 
-      const result = await service.findAll();
+      const result = await service.findAll({} as any);
 
       expect(result.data[0].status).toBe('active');
     });
@@ -189,7 +189,7 @@ describe('MembersService', () => {
         1,
       ]);
 
-      const result = await service.findAll();
+      const result = await service.findAll({} as any);
 
       expect(result.data[0].status).toBe('expired');
     });
@@ -197,10 +197,8 @@ describe('MembersService', () => {
     it('should pass search filter into where clause', async () => {
       mockPrisma.$transaction.mockResolvedValue([[], 0]);
 
-      await service.findAll('wahyu');
+      await service.findAll({ search: 'wahyu' } as any);
 
-      const [findManyCall] = mockPrisma.$transaction.mock.calls[0][0];
-      // findManyCall di sini bentuknya Prisma.PrismaPromise, jadi kita cek lewat argumen yg dikirim ke findMany langsung
       expect(mockPrisma.member.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
@@ -213,7 +211,7 @@ describe('MembersService', () => {
     it('should translate status=no_package filter into correct where clause', async () => {
       mockPrisma.$transaction.mockResolvedValue([[], 0]);
 
-      await service.findAll(undefined, 'no_package');
+      await service.findAll({ status: 'no_package' } as any);
 
       expect(mockPrisma.member.findMany).toHaveBeenCalledWith(
         expect.objectContaining({

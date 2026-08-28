@@ -3,6 +3,9 @@ import { PrismaService } from '../prisma/prisma.service';
 import { UpdateMemberDto } from './dto/update-member.dto';
 import { UpdatePhotoDto } from './dto/update-photo.dto';
 import { Prisma, Gender } from '@prisma/client';
+import { paginate } from '../common/utils/paginate.util';
+import { FindMembersDto } from './dto/find-member.dto';
+import { mapMemberStatus } from './members.mapper';
 
 // reusable select untuk profile member
 const memberProfileSelect = {
@@ -22,6 +25,19 @@ const memberProfileSelect = {
     },
   },
 };
+
+type MemberListItem = Prisma.MemberGetPayload<{
+  select: {
+    id: true;
+    name: true;
+    phone: true;
+    photo_url: true;
+    gender: true;
+    created_at: true;
+    updated_at: true;
+    member_packages: { select: { status: true } };
+  };
+}>;
 
 @Injectable()
 export class MembersService {
@@ -81,12 +97,10 @@ export class MembersService {
     });
   }
 
-  async findAll(search?: string, status?: string, gender?: string, page = 1, limit = 10) {
-    const skip = (page - 1) * limit;
+  async findAll(query: FindMembersDto) {
+    const { search, status, gender, page = 1, limit = 10 } = query;
 
-    const where: Prisma.MemberWhereInput = {
-      deleted_at: null,
-    };
+    const where: Prisma.MemberWhereInput = { deleted_at: null };
 
     if (search) {
       where.name = { contains: search, mode: 'insensitive' };
@@ -106,11 +120,11 @@ export class MembersService {
       where.gender = gender as Gender;
     }
 
-    const [members, total] = await this.prisma.$transaction([
-      this.prisma.member.findMany({
+    const result = await paginate<MemberListItem>(
+      this.prisma,
+      this.prisma.member,
+      {
         where,
-        skip,
-        take: limit,
         select: {
           id: true,
           name: true,
@@ -126,39 +140,12 @@ export class MembersService {
           },
         },
         orderBy: { created_at: 'desc' },
-      }),
-      this.prisma.member.count({ where }),
-    ]);
-
-    const data = members.map((member) => {
-      const { member_packages, ...rest } = member;
-
-      let derivedStatus: string;
-      if (member_packages.length === 0) {
-        derivedStatus = 'no_package'; // belum pernah beli paket
-      } else {
-        const latestStatus = member_packages[0].status; // paket terbaru
-        if (latestStatus === 'active') {
-          derivedStatus = 'active';
-        } else if (latestStatus === 'pending_payment') {
-          derivedStatus = 'pending_payment';
-        } else {
-          derivedStatus = 'expired'; // expired atau cancelled dianggap sama
-        }
-      }
-
-      return { ...rest, status: derivedStatus };
-    });
-
-    return {
-      data,
-      meta: {
-        total,
-        page,
-        limit,
-        total_pages: Math.ceil(total / limit),
       },
-    };
+      page,
+      limit,
+    );
+
+    return { ...result, data: result.data.map(mapMemberStatus) };
   }
 
   async findOne(id: string) {

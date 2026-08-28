@@ -1,6 +1,7 @@
-import { IsOptional, IsIn, IsNumberString } from 'class-validator';
+import { IsOptional, IsIn } from 'class-validator';
+import { PaginationDto } from '../../common/dto/pagination.dto';
 
-export class FindMembersDto {
+export class FindMembersDto extends PaginationDto {
   @IsOptional()
   search?: string;
 
@@ -11,12 +12,4 @@ export class FindMembersDto {
   @IsOptional()
   @IsIn(['male', 'female'])
   gender?: string;
-
-  @IsOptional()
-  @IsNumberString()
-  page?: string;
-
-  @IsOptional()
-  @IsNumberString()
-  limit?: string;
 }
