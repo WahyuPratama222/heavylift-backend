@@ -14,6 +14,7 @@ describe('PackagesService', () => {
       findUnique: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
+      count: jest.fn(),
     },
     packageCategory: {
       findUnique: jest.fn(),
@@ -21,6 +22,7 @@ describe('PackagesService', () => {
     memberPackage: {
       count: jest.fn(),
     },
+    $transaction: jest.fn(),
   };
 
   const p2002Error = new Prisma.PrismaClientKnownRequestError(
@@ -32,7 +34,7 @@ describe('PackagesService', () => {
     id: 'pkg-1',
     category_id: 'cat-1',
     name: 'Bulanan',
-    price: { toString: () => '150000' }, // simulasi Prisma Decimal
+    price: { toString: () => '150000' },
     category: { id: 'cat-1', name: 'Bulanan Category' },
   };
 
@@ -89,17 +91,17 @@ describe('PackagesService', () => {
   // ============ findAll ============
   describe('findAll', () => {
     it('should return all packages with price converted to Number', async () => {
-      mockPrisma.package.findMany.mockResolvedValue([mockPackage]);
+      mockPrisma.$transaction.mockResolvedValue([[mockPackage], 1]);
 
-      const result = await service.findAll();
+      const result = await service.findAll({} as any);
 
-      expect(typeof result[0].price).toBe('number');
+      expect(typeof result.data[0].price).toBe('number');
     });
 
     it('should pass categoryId filter into where clause', async () => {
-      mockPrisma.package.findMany.mockResolvedValue([]);
+      mockPrisma.$transaction.mockResolvedValue([[], 0]);
 
-      await service.findAll('cat-1');
+      await service.findAll({ category_id: 'cat-1' } as any);
 
       expect(mockPrisma.package.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
