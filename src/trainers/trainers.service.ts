@@ -2,6 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTrainerDto } from './dto/create-trainer.dto';
 import { UpdateTrainerDto } from './dto/update-trainer.dto';
+import { PaginationDto } from '../common/dto/pagination.dto';
+import { paginate } from '../common/utils/paginate.util';
 
 @Injectable()
 export class TrainersService {
@@ -13,11 +15,17 @@ export class TrainersService {
     });
   }
 
-  async findAll() {
-    return this.prisma.trainer.findMany({
-      where: { is_active: true },
-      orderBy: { created_at: 'desc' },
-    });
+  async findAll(query: PaginationDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+
+    return paginate(
+      this.prisma,
+      this.prisma.trainer,
+      { where: { is_active: true }, orderBy: { created_at: 'desc' } },
+      page,
+      limit,
+    );
   }
 
   async findOne(id: string) {

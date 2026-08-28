@@ -13,7 +13,9 @@ describe('TrainersService', () => {
       findUnique: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
+      count: jest.fn(),
     },
+    $transaction: jest.fn(),
   };
 
   const mockTrainer = { id: 'trainer-1', name: 'Budi', is_active: true };
@@ -45,15 +47,17 @@ describe('TrainersService', () => {
   // ============ findAll ============
   describe('findAll', () => {
     it('should return only active trainers ordered by created_at desc', async () => {
-      mockPrisma.trainer.findMany.mockResolvedValue([mockTrainer]);
+      mockPrisma.$transaction.mockResolvedValue([[mockTrainer], 1]);
 
-      const result = await service.findAll();
+      const result = await service.findAll({} as any);
 
-      expect(mockPrisma.trainer.findMany).toHaveBeenCalledWith({
-        where: { is_active: true },
-        orderBy: { created_at: 'desc' },
-      });
-      expect(result).toEqual([mockTrainer]);
+      expect(mockPrisma.trainer.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { is_active: true },
+          orderBy: { created_at: 'desc' },
+        }),
+      );
+      expect(result.data).toEqual([mockTrainer]);
     });
   });
 
