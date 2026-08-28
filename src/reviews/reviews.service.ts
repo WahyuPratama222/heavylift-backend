@@ -8,6 +8,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { PublishReviewDto } from './dto/publish-review.dto';
 import { handlePrismaError } from '../common/helpers/prisma-error.helper';
+import { FindReviewsDto } from './dto/find-review.dto';
+import { paginate } from '../common/utils/paginate.util';
 
 const REVIEW_WINDOW_DAYS = 14;
 
@@ -75,26 +77,25 @@ export class ReviewsService {
     }
   }
 
-  async findPublished() {
-    return this.prisma.review.findMany({
-      where: { is_published: true },
-      orderBy: { created_at: 'desc' },
-      select: {
-        id: true,
-        rating: true,
-        comment: true,
-        created_at: true,
-        updated_at: true,
-        member: {
-          select: { name: true, photo_url: true },
-        },
-        member_package: {
-          select: {
-            package: { select: { name: true } },
-          },
+  async findPublished(query: FindReviewsDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+
+    return paginate(
+      this.prisma,
+      this.prisma.review,
+      {
+        where: { is_published: true },
+        orderBy: { created_at: 'desc' },
+        select: {
+          id: true, rating: true, comment: true, created_at: true, updated_at: true,
+          member: { select: { name: true, photo_url: true } },
+          member_package: { select: { package: { select: { name: true } } } },
         },
       },
-    });
+      page,
+      limit,
+    );
   }
 
   async updatePublishStatus(id: string, dto: PublishReviewDto) {
