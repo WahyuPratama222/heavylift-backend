@@ -3,6 +3,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreatePackageCategoryDto } from './dto/create-package-category.dto';
 import { UpdatePackageCategoryDto } from './dto/update-package-category.dto';
 import { handlePrismaError } from '../common/helpers/prisma-error.helper';
+import { PaginationDto } from '../common/dto/pagination.dto';
+import { paginate } from '../common/utils/paginate.util';
 
 @Injectable()
 export class PackageCategoriesService {
@@ -18,12 +20,18 @@ export class PackageCategoriesService {
     }
   }
 
-  async findAll() {
-    return this.prisma.packageCategory.findMany({
-      orderBy: { created_at: 'desc' },
-    });
-  }
+  async findAll(query: PaginationDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
 
+    return paginate(
+      this.prisma,
+      this.prisma.packageCategory,
+      { orderBy: { created_at: 'desc' } },
+      page,
+      limit,
+    );
+  }
   async findOne(id: string) {
     const category = await this.prisma.packageCategory.findUnique({
       where: { id },
