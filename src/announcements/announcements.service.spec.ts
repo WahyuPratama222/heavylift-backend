@@ -13,6 +13,7 @@ describe('AnnouncementsService', () => {
       findUnique: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
+      count: jest.fn(),
     },
     member: {
       findUnique: jest.fn(),
@@ -20,6 +21,7 @@ describe('AnnouncementsService', () => {
     memberPackage: {
       findFirst: jest.fn(),
     },
+    $transaction: jest.fn(),
   };
 
   const mockAnnouncement = { id: 'ann-1', title: 'Gym Closed', target: 'all' };
@@ -56,7 +58,7 @@ describe('AnnouncementsService', () => {
     it('should throw NotFoundException if member not found or soft-deleted', async () => {
       mockPrisma.member.findUnique.mockResolvedValue(null);
 
-      await expect(service.findAll('user-1')).rejects.toThrow(
+      await expect(service.findAll('user-1', {} as any)).rejects.toThrow(
         NotFoundException,
       );
     });
@@ -70,9 +72,9 @@ describe('AnnouncementsService', () => {
         status: 'active',
         package_id: 'pkg-1',
       });
-      mockPrisma.announcement.findMany.mockResolvedValue([]);
+      mockPrisma.$transaction.mockResolvedValue([[], 0]);
 
-      await service.findAll('user-1');
+      await service.findAll('user-1', {} as any);
 
       const callArg = mockPrisma.announcement.findMany.mock.calls[0][0];
       expect(callArg.where.AND.OR).toContainEqual({
@@ -90,9 +92,9 @@ describe('AnnouncementsService', () => {
         status: 'expired',
         package_id: 'pkg-1',
       });
-      mockPrisma.announcement.findMany.mockResolvedValue([]);
+      mockPrisma.$transaction.mockResolvedValue([[], 0]);
 
-      await service.findAll('user-1');
+      await service.findAll('user-1', {} as any);
 
       const callArg = mockPrisma.announcement.findMany.mock.calls[0][0];
       expect(callArg.where.AND.OR).toContainEqual({ target: 'no_package' });

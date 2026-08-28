@@ -3,6 +3,8 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAnnouncementDto } from './dto/create-announcement.dto';
 import { UpdateAnnouncementDto } from './dto/update-announcement.dto';
+import { FindAnnouncementsDto } from './dto/find-announcement.dto';
+import { paginate } from '../common/utils/paginate.util';
 
 @Injectable()
 export class AnnouncementsService {
@@ -17,11 +19,11 @@ export class AnnouncementsService {
     });
   }
 
-  async findAll(userId: string) {
-    const member = await this.prisma.member.findUnique({
-      where: { user_id: userId },
-    });
+  async findAll(userId: string, query: FindAnnouncementsDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
 
+    const member = await this.prisma.member.findUnique({ where: { user_id: userId } });
     if (!member || member.deleted_at) {
       throw new NotFoundException('Member not found');
     }
@@ -35,28 +37,28 @@ export class AnnouncementsService {
     const hasActivePackage = latestPackage?.status === 'active';
     const now = new Date();
 
-    const targetConditions: Prisma.AnnouncementWhereInput[] = [
-      { target: 'all' },
-    ];
-
+    const targetConditions: Prisma.AnnouncementWhereInput[] = [{ target: 'all' }];
     if (hasActivePackage) {
-      targetConditions.push({
-        target: 'specific_package',
-        package_id: latestPackage.package_id,
-      });
+      targetConditions.push({ target: 'specific_package', package_id: latestPackage.package_id });
     } else {
       targetConditions.push({ target: 'no_package' });
     }
 
-    return this.prisma.announcement.findMany({
-      where: {
-        published_at: { lte: now },
-        OR: [{ expired_at: { gte: now } }, { expired_at: null }],
-        AND: { OR: targetConditions },
+    return paginate(
+      this.prisma,
+      this.prisma.announcement,
+      {
+        where: {
+          published_at: { lte: now },
+          OR: [{ expired_at: { gte: now } }, { expired_at: null }],
+          AND: { OR: targetConditions },
+        },
+        orderBy: { published_at: 'desc' },
       },
-      orderBy: { published_at: 'desc' },
-    });
-  }
+      page,
+      limit,
+    );
+}
 
   async findOne(id: string) {
     const announcement = await this.prisma.announcement.findUnique({
