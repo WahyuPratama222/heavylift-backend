@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { Payment } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { paginate } from '../common/utils/paginate.util';
@@ -24,19 +25,19 @@ export class PaymentsService {
 
     switch (payload.status) {
       case 'PAID':
-      await this.prisma.payment.update({
-        where: { id: payment.id },
-        data: {
-          status: 'paid',
-          payment_method: payload.payment_method,
-          paid_at: payload.paid_at ? new Date(payload.paid_at) : new Date(),
-        },
-      });
+        await this.prisma.payment.update({
+          where: { id: payment.id },
+          data: {
+            status: 'paid',
+            payment_method: payload.payment_method,
+            paid_at: payload.paid_at ? new Date(payload.paid_at) : new Date(),
+          },
+        });
 
-      await this.prisma.memberPackage.update({
-        where: { id: payment.member_package_id },
-        data: { status: 'active' },
-      });
+        await this.prisma.memberPackage.update({
+          where: { id: payment.member_package_id },
+          data: { status: 'active' },
+        });
         break;
 
       case 'EXPIRED':
@@ -63,7 +64,18 @@ export class PaymentsService {
   async findAll(query: PaginationDto) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
-    return paginate(this.prisma, this.prisma.payment, { orderBy: { created_at: 'desc' } }, page, limit);
+    const result = await paginate(
+      this.prisma,
+      this.prisma.payment,
+      { orderBy: { created_at: 'desc' } },
+      page,
+      limit,
+    );
+
+    return {
+      ...result,
+      data: result.data.map(this.serialize),
+    };
   }
 
   async findOne(id: string) {
@@ -83,6 +95,13 @@ export class PaymentsService {
       throw new NotFoundException('Payment not found');
     }
 
-    return payment;
+    return this.serialize(payment);
+  }
+
+  private serialize(payment: Payment & Record<string, any>) {
+    return {
+      ...payment,
+      amount: Number(payment.amount),
+    };
   }
 }

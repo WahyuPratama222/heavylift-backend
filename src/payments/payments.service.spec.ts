@@ -86,7 +86,7 @@ describe('PaymentsService', () => {
       );
     });
 
-    it('does not update anything when status is not PAID', async () => {
+    it('updates payment and member package to failed/cancelled when status is EXPIRED', async () => {
       prisma.payment.findUnique.mockResolvedValueOnce({
         id: 'payment-1',
         member_package_id: 'mp-1',
@@ -98,6 +98,33 @@ describe('PaymentsService', () => {
         status: 'EXPIRED',
       });
 
+      expect(prisma.payment.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'payment-1' },
+          data: { status: 'failed' },
+        }),
+      );
+      expect(prisma.memberPackage.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'mp-1' },
+          data: { status: 'cancelled' },
+        }),
+      );
+      expect(result).toEqual({ message: 'Webhook received' });
+    });
+
+    it('does not update anything when status is PENDING or unrecognized', async () => {
+      prisma.payment.findUnique.mockResolvedValueOnce({
+        id: 'payment-1',
+        member_package_id: 'mp-1',
+        xendit_invoice_id: 'inv-1',
+      });
+
+      const result = await service.handleWebhook(validToken, {
+        id: 'inv-1',
+        status: 'PENDING',
+      });
+
       expect(prisma.payment.update).not.toHaveBeenCalled();
       expect(prisma.memberPackage.update).not.toHaveBeenCalled();
       expect(result).toEqual({ message: 'Webhook received' });
@@ -105,22 +132,46 @@ describe('PaymentsService', () => {
   });
 
   describe('findAll', () => {
-    it('returns paginated payments', async () => {
-      prisma.$transaction.mockResolvedValueOnce([[{ id: 'payment-1' }], 1]);
+    it('returns paginated payments with amount converted to number', async () => {
+      prisma.$transaction.mockResolvedValueOnce([
+        [{ id: 'payment-1', amount: '150000.00' }],
+        1,
+      ]);
 
       const result = await service.findAll({} as any);
 
-      expect(result.data).toEqual([{ id: 'payment-1' }]);
+      expect(result.data).toEqual([{ id: 'payment-1', amount: 150000 }]);
+      expect(typeof result.data[0].amount).toBe('number');
+      expect(result.meta).toEqual({
+        total: 1,
+        page: 1,
+        limit: 10,
+        total_pages: 1,
+      });
+    });
+
+    it('uses page and limit from query when provided', async () => {
+      prisma.$transaction.mockResolvedValueOnce([[], 0]);
+
+      await service.findAll({ page: 2, limit: 5 } as any);
+
+      expect(prisma.payment.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ skip: 5, take: 5 }),
+      );
     });
   });
 
   describe('findOne', () => {
-    it('returns a payment with its relations', async () => {
-      prisma.payment.findUnique.mockResolvedValueOnce({ id: 'payment-1' });
+    it('returns a payment with its relations and amount converted to number', async () => {
+      prisma.payment.findUnique.mockResolvedValueOnce({
+        id: 'payment-1',
+        amount: '150000.00',
+      });
 
       const result = await service.findOne('payment-1');
 
-      expect(result).toEqual({ id: 'payment-1' });
+      expect(result).toEqual({ id: 'payment-1', amount: 150000 });
+      expect(typeof result.amount).toBe('number');
     });
 
     it('throws NotFoundException when payment does not exist', async () => {
