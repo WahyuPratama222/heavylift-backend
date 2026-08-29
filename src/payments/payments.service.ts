@@ -22,7 +22,8 @@ export class PaymentsService {
       return { message: 'Webhook received' };
     }
 
-    if (payload.status === 'PAID') {
+    switch (payload.status) {
+      case 'PAID':
       await this.prisma.payment.update({
         where: { id: payment.id },
         data: {
@@ -36,6 +37,24 @@ export class PaymentsService {
         where: { id: payment.member_package_id },
         data: { status: 'active' },
       });
+        break;
+
+      case 'EXPIRED':
+        await this.prisma.payment.update({
+          where: { id: payment.id },
+          data: { status: 'failed' },
+        });
+
+        await this.prisma.memberPackage.update({
+          where: { id: payment.member_package_id },
+          data: { status: 'cancelled' },
+        });
+        break;
+
+      // PENDING and other unrecognized statuses are intentionally ignored —
+      // no state changes are required on our end.
+      default:
+        break;
     }
 
     return { message: 'Webhook received' };
