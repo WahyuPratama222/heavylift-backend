@@ -1,15 +1,17 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, Logger } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Logger } from 'nestjs-pino';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
-import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+
+  const logger = app.get(Logger);
+  app.useLogger(logger);
 
   const configService = app.get(ConfigService);
-
   const corsOrigin = configService.get<string>('CORS_ORIGIN');
 
   app.use(helmet());
@@ -21,7 +23,6 @@ async function bootstrap() {
   });
 
   app.setGlobalPrefix('api');
-  app.useGlobalInterceptors(new LoggingInterceptor());
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -31,10 +32,9 @@ async function bootstrap() {
     }),
   );
 
-
   const port = configService.get<number>('PORT') || 3000;
   await app.listen(port);
 
-  Logger.log(`Server running and listening on port: ${port}`, 'Bootstrap');
+  logger.log(`Server running and listening on port: ${port}`, 'Bootstrap');
 }
 bootstrap();
