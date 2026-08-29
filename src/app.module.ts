@@ -1,20 +1,24 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
+import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { PrismaModule } from './prisma/prisma.module';
-import { AuthModule } from './auth/auth.module';
+
+import { envValidationSchema } from './config/env.validation';
 import { JwtGuard } from './common/guards/jwt.guard';
 import { RolesGuard } from './common/guards/roles.guard';
+
+import { PrismaModule } from './prisma/prisma.module';
+import { RedisModule } from './redis/redis.module';
+import { HealthModule } from './health/health.module';
+import { AuthModule } from './auth/auth.module';
 import { MembersModule } from './members/members.module';
-import { PackagesModule } from './packages/packages.module';
 import { PackageCategoriesModule } from './package-categories/package-categories.module';
+import { PackagesModule } from './packages/packages.module';
 import { TrainersModule } from './trainers/trainers.module';
 import { GymModule } from './gym/gym.module';
 import { EquipmentsModule } from './equipments/equipments.module';
 import { AttendancesModule } from './attendances/attendances.module';
-import { RedisModule } from './redis/redis.module';
 import { AnnouncementsModule } from './announcements/announcements.module';
-import { HealthModule } from './health/health.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { XenditModule } from './xendit/xendit.module';
 import { MemberPackagesModule } from './member-packages/member-packages.module';
@@ -22,6 +26,11 @@ import { PaymentsModule } from './payments/payments.module';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: process.env.NODE_ENV === 'production' ? '.env.production' : '.env',
+      validationSchema: envValidationSchema,
+    }),
     ThrottlerModule.forRoot([
       {
         name: 'default',
@@ -29,8 +38,23 @@ import { PaymentsModule } from './payments/payments.module';
         limit: 100,
       },
     ]),
-    PrismaModule, RedisModule, AuthModule, HealthModule, ReviewsModule, MembersModule, PackagesModule, PackageCategoriesModule, TrainersModule, GymModule, EquipmentsModule, AttendancesModule, AnnouncementsModule, ReviewsModule, XenditModule, MemberPackagesModule,
-    PaymentsModule,],
+    PrismaModule,
+    RedisModule,
+    HealthModule,
+    AuthModule,
+    MembersModule,
+    PackageCategoriesModule,
+    PackagesModule,
+    TrainersModule,
+    GymModule,
+    EquipmentsModule,
+    AttendancesModule,
+    AnnouncementsModule,
+    ReviewsModule,
+    XenditModule,
+    MemberPackagesModule,
+    PaymentsModule,
+  ],
   providers: [
     {
       provide: APP_GUARD,
