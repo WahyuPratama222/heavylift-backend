@@ -6,6 +6,7 @@ import { FindEquipmentsDto } from './dto/find-equipment.dto';
 import { AddEquipmentPhotosDto } from './dto/add-equipment-photo.dto';
 import { handlePrismaError } from '../common/helpers/prisma-error.helper';
 import { paginate } from '../common/utils/paginate.util';
+import { deletedResponse } from '../common/utils/deleted-response.util';
 
 const equipmentSelect = {
   id: true,
@@ -38,7 +39,7 @@ export class EquipmentsService {
   }
 
   async findAll(query: FindEquipmentsDto) {
-    const { search, category, page = 1, limit = 10 } = query;
+    const { search, category } = query;
 
     return paginate(
       this.prisma,
@@ -51,8 +52,7 @@ export class EquipmentsService {
         },
         select: equipmentSelect,
       },
-      page,
-      limit,
+      query,
     );
   }
 
@@ -88,7 +88,7 @@ export class EquipmentsService {
 
     await this.prisma.equipment.delete({ where: { id } });
 
-    return { message: 'Equipment deleted successfully' };
+    return deletedResponse('Equipment');
   }
 
   async addPhotos(equipmentId: string, dto: AddEquipmentPhotosDto) {
@@ -124,6 +124,6 @@ export class EquipmentsService {
 
     await this.prisma.equipmentPhoto.delete({ where: { id: photoId } });
 
-    return { message: 'Photo deleted successfully' };
+    return deletedResponse('Photo');
   }
 }
