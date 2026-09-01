@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { MembersService } from './members.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -231,8 +232,8 @@ describe('MembersService', () => {
         member_packages: [
           {
             id: 'mp-1',
-            package: { name: 'Bulanan', price: { toString: () => '150000' } },
-            payments: [{ id: 'p-1', amount: { toString: () => '150000' } }],
+            package: { name: 'Bulanan', price: new Prisma.Decimal('150000') },
+            payments: [{ id: 'p-1', amount: new Prisma.Decimal('150000') }],
           },
         ],
       });
@@ -240,10 +241,9 @@ describe('MembersService', () => {
       const result = await service.findOne('member-1');
 
       expect(typeof result.member_packages[0].package.price).toBe('number');
-      expect(typeof result.member_packages[0].payments[0].amount).toBe(
-        'number',
-      );
+      expect(typeof result.member_packages[0].payments[0].amount).toBe('number');
     });
+
 
     it('should throw NotFoundException if member not found', async () => {
       mockPrisma.member.findFirst.mockResolvedValue(null);

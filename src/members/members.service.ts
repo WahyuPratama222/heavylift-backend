@@ -6,6 +6,9 @@ import { Prisma, Gender } from '@prisma/client';
 import { paginate } from '../common/utils/paginate.util';
 import { FindMembersDto } from './dto/find-member.dto';
 import { mapMemberStatus } from './members.mapper';
+import { resolveMemberId } from '../common/helpers/resolve-member.helper';
+import { toNumber } from '../common/utils/decimal.util';
+import { deletedResponse } from '../common/utils/deleted-response.util';
 
 // reusable select untuk profile member
 const memberProfileSelect = {
@@ -61,16 +64,10 @@ export class MembersService {
   }
 
   async updateProfile(userId: string, dto: UpdateMemberDto) {
-    const member = await this.prisma.member.findUnique({
-      where: { user_id: userId },
-    });
-
-    if (!member || member.deleted_at) {
-      throw new NotFoundException('Member not found');
-    }
+    const memberId = await resolveMemberId(this.prisma, userId);
 
     return this.prisma.member.update({
-      where: { id: member.id },
+      where: { id: memberId },
       data: {
         ...dto,
         date_of_birth: dto.date_of_birth
@@ -82,23 +79,17 @@ export class MembersService {
   }
 
   async updatePhoto(userId: string, dto: UpdatePhotoDto) {
-    const member = await this.prisma.member.findUnique({
-      where: { user_id: userId },
-    });
-
-    if (!member || member.deleted_at) {
-      throw new NotFoundException('Member not found');
-    }
+    const memberId = await resolveMemberId(this.prisma, userId);
 
     return this.prisma.member.update({
-      where: { id: member.id },
+      where: { id: memberId },
       data: { photo_url: dto.photo_url },
       select: memberProfileSelect,
     });
   }
 
   async findAll(query: FindMembersDto) {
-    const { search, status, gender, page = 1, limit = 10 } = query;
+    const { search, status, gender } = query;
 
     const where: Prisma.MemberWhereInput = { deleted_at: null };
 
@@ -141,8 +132,7 @@ export class MembersService {
         },
         orderBy: { created_at: 'desc' },
       },
-      page,
-      limit,
+      query,
     );
 
     return { ...result, data: result.data.map(mapMemberStatus) };
@@ -197,11 +187,11 @@ export class MembersService {
         ...mp,
         package: {
           ...mp.package,
-          price: Number(mp.package.price),
+          price: toNumber(mp.package.price),
         },
         payments: mp.payments.map((p) => ({
           ...p,
-          amount: Number(p.amount),
+          amount: toNumber(p.amount),
         })),
       })),
     };
@@ -221,6 +211,6 @@ export class MembersService {
       data: { deleted_at: new Date() },
     });
 
-    return { message: 'Member deleted successfully' };
+    return deletedResponse('Member');
   }
 }
