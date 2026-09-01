@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { FindAttendancesDto } from './dto/find-attendance.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { paginate } from '../common/utils/paginate.util';
+import { resolveMemberId } from '../common/helpers/resolve-member.helper';
 
 const attendanceSelect = {
   id: true,
@@ -15,20 +16,8 @@ const attendanceSelect = {
 export class AttendancesService {
   constructor(private prisma: PrismaService) {}
 
-  private async resolveMemberId(userId: string): Promise<string> {
-    const member = await this.prisma.member.findUnique({
-      where: { user_id: userId },
-    });
-
-    if (!member || member.deleted_at) {
-      throw new NotFoundException('Member not found');
-    }
-
-    return member.id;
-  }
-
   async checkIn(userId: string) {
-    const memberId = await this.resolveMemberId(userId);
+    const memberId = await resolveMemberId(this.prisma, userId);
 
     const activePackage = await this.prisma.memberPackage.findFirst({
       where: { member_id: memberId, status: 'active' },
@@ -53,7 +42,7 @@ export class AttendancesService {
   }
 
   async checkOut(userId: string) {
-    const memberId = await this.resolveMemberId(userId);
+    const memberId = await resolveMemberId(this.prisma, userId);
 
     const activeSession = await this.prisma.attendance.findFirst({
       where: { member_id: memberId, check_out_at: null },
@@ -71,7 +60,7 @@ export class AttendancesService {
   }
 
   async getStatus(userId: string) {
-    const memberId = await this.resolveMemberId(userId);
+    const memberId = await resolveMemberId(this.prisma, userId);
 
     return this.prisma.attendance.findFirst({
       where: { member_id: memberId, check_out_at: null },
@@ -80,23 +69,17 @@ export class AttendancesService {
   }
 
   async findMyHistory(userId: string, query: PaginationDto) {
-    const memberId = await this.resolveMemberId(userId);
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 10;
+    const memberId = await resolveMemberId(this.prisma, userId);
 
     return paginate(
       this.prisma,
       this.prisma.attendance,
       { where: { member_id: memberId }, orderBy: { check_in_at: 'desc' }, select: attendanceSelect },
-      page,
-      limit,
+      query,
     );
   }
 
   async findAll(query: FindAttendancesDto) {
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 20;
-
     const where = {
       ...(query.member_id && { member_id: query.member_id }),
       ...(query.date_from || query.date_to
@@ -122,8 +105,8 @@ export class AttendancesService {
           },
         },
       },
-      page,
-      limit,
+      query,
+      20,
     );
   }
 }
