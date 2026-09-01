@@ -5,6 +5,8 @@ import { CreateAnnouncementDto } from './dto/create-announcement.dto';
 import { UpdateAnnouncementDto } from './dto/update-announcement.dto';
 import { FindAnnouncementsDto } from './dto/find-announcement.dto';
 import { paginate } from '../common/utils/paginate.util';
+import { resolveMemberId } from '../common/helpers/resolve-member.helper';
+import { deletedResponse } from '../common/utils/deleted-response.util';
 
 @Injectable()
 export class AnnouncementsService {
@@ -19,23 +21,16 @@ export class AnnouncementsService {
     });
   }
 
-  async findAll(userId: string, query: FindAnnouncementsDto) {
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 10;
-
-    const member = await this.prisma.member.findUnique({ where: { user_id: userId } });
-    if (!member || member.deleted_at) {
-      throw new NotFoundException('Member not found');
-    }
-
+  private async resolveTargetConditions(
+    memberId: string,
+  ): Promise<Prisma.AnnouncementWhereInput[]> {
     const latestPackage = await this.prisma.memberPackage.findFirst({
-      where: { member_id: member.id },
+      where: { member_id: memberId },
       orderBy: { created_at: 'desc' },
       select: { status: true, package_id: true },
     });
 
     const hasActivePackage = latestPackage?.status === 'active';
-    const now = new Date();
 
     const targetConditions: Prisma.AnnouncementWhereInput[] = [{ target: 'all' }];
     if (hasActivePackage) {
@@ -43,6 +38,14 @@ export class AnnouncementsService {
     } else {
       targetConditions.push({ target: 'no_package' });
     }
+
+    return targetConditions;
+  }
+
+  async findAll(userId: string, query: FindAnnouncementsDto) {
+    const memberId = await resolveMemberId(this.prisma, userId);
+    const targetConditions = await this.resolveTargetConditions(memberId);
+    const now = new Date();
 
     return paginate(
       this.prisma,
@@ -55,10 +58,9 @@ export class AnnouncementsService {
         },
         orderBy: { published_at: 'desc' },
       },
-      page,
-      limit,
+      query,
     );
-}
+  }
 
   async findOne(id: string) {
     const announcement = await this.prisma.announcement.findUnique({
@@ -86,6 +88,6 @@ export class AnnouncementsService {
 
     await this.prisma.announcement.delete({ where: { id } });
 
-    return { message: 'Announcement deleted successfully' };
+    return deletedResponse('Announcement');
   }
 }
