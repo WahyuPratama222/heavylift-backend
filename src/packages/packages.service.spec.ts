@@ -34,7 +34,7 @@ describe('PackagesService', () => {
     id: 'pkg-1',
     category_id: 'cat-1',
     name: 'Bulanan',
-    price: { toString: () => '150000' },
+    price: new Prisma.Decimal('150000'),
     category: { id: 'cat-1', name: 'Bulanan Category' },
   };
 

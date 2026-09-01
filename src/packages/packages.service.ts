@@ -4,6 +4,8 @@ import { CreatePackageDto } from './dto/create-package.dto';
 import { UpdatePackageDto } from './dto/update-package.dto';
 import { handlePrismaError } from '../common/helpers/prisma-error.helper';
 import { paginate } from '../common/utils/paginate.util';
+import { toNumber } from '../common/utils/decimal.util';
+import { deletedResponse } from '../common/utils/deleted-response.util';
 import { FindPackagesDto } from './dto/find-package.dto';
 
 const packageSelect = {
@@ -26,7 +28,7 @@ const packageSelect = {
 function formatPackage(pkg: any) {
   return {
     ...pkg,
-    price: Number(pkg.price),
+    price: toNumber(pkg.price),
   };
 }
 
@@ -34,13 +36,17 @@ function formatPackage(pkg: any) {
 export class PackagesService {
   constructor(private prisma: PrismaService) {}
 
-  async create(dto: CreatePackageDto) {
+  private async assertCategoryExists(categoryId: string) {
     const category = await this.prisma.packageCategory.findUnique({
-      where: { id: dto.category_id },
+      where: { id: categoryId },
     });
     if (!category) {
       throw new NotFoundException('Package category not found');
     }
+  }
+
+  async create(dto: CreatePackageDto) {
+    await this.assertCategoryExists(dto.category_id);
 
     try {
       const pkg = await this.prisma.package.create({
@@ -54,7 +60,7 @@ export class PackagesService {
   }
 
   async findAll(query: FindPackagesDto) {
-    const { category_id, page = 1, limit = 10 } = query;
+    const { category_id } = query;
 
     const result = await paginate(
       this.prisma,
@@ -67,12 +73,12 @@ export class PackagesService {
         select: packageSelect,
         orderBy: { created_at: 'desc' },
       },
-      page,
-      limit,
+      query,
     );
 
     return { ...result, data: result.data.map(formatPackage) };
   }
+
   async findOne(id: string) {
     const pkg = await this.prisma.package.findUnique({
       where: { id },
@@ -88,12 +94,7 @@ export class PackagesService {
     await this.findOne(id);
 
     if (dto.category_id) {
-      const category = await this.prisma.packageCategory.findUnique({
-        where: { id: dto.category_id },
-      });
-      if (!category) {
-        throw new NotFoundException('Package category not found');
-      }
+      await this.assertCategoryExists(dto.category_id);
     }
 
     try {
@@ -123,6 +124,6 @@ export class PackagesService {
 
     await this.prisma.package.delete({ where: { id } });
 
-    return { message: 'Package deleted successfully' };
+    return deletedResponse('Package');
   }
 }
