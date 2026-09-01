@@ -1,20 +1,26 @@
 import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Payment } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { paginate } from '../common/utils/paginate.util';
+import { toNumber } from '../common/utils/decimal.util';
+import { XenditWebhookDto } from './dto/xendit-webhook.dto';
 
 @Injectable()
 export class PaymentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
+  ) {}
 
-  async handleWebhook(callbackToken: string, payload: any) {
-    if (callbackToken !== process.env.XENDIT_CALLBACK_TOKEN) {
+  async handleWebhook(callbackToken: string, dto: XenditWebhookDto) {
+    if (callbackToken !== this.config.get<string>('XENDIT_CALLBACK_TOKEN')) {
       throw new UnauthorizedException('Invalid callback token');
     }
 
     const payment = await this.prisma.payment.findUnique({
-      where: { xendit_invoice_id: payload.id },
+      where: { xendit_invoice_id: dto.id },
     });
 
     if (!payment) {
@@ -23,33 +29,35 @@ export class PaymentsService {
       return { message: 'Webhook received' };
     }
 
-    switch (payload.status) {
+    switch (dto.status) {
       case 'PAID':
-        await this.prisma.payment.update({
-          where: { id: payment.id },
-          data: {
-            status: 'paid',
-            payment_method: payload.payment_method,
-            paid_at: payload.paid_at ? new Date(payload.paid_at) : new Date(),
-          },
-        });
-
-        await this.prisma.memberPackage.update({
-          where: { id: payment.member_package_id },
-          data: { status: 'active' },
-        });
+        await this.prisma.$transaction([
+          this.prisma.payment.update({
+            where: { id: payment.id },
+            data: {
+              status: 'paid',
+              payment_method: dto.payment_method,
+              paid_at: dto.paid_at ? new Date(dto.paid_at) : new Date(),
+            },
+          }),
+          this.prisma.memberPackage.update({
+            where: { id: payment.member_package_id },
+            data: { status: 'active' },
+          }),
+        ]);
         break;
 
       case 'EXPIRED':
-        await this.prisma.payment.update({
-          where: { id: payment.id },
-          data: { status: 'failed' },
-        });
-
-        await this.prisma.memberPackage.update({
-          where: { id: payment.member_package_id },
-          data: { status: 'cancelled' },
-        });
+        await this.prisma.$transaction([
+          this.prisma.payment.update({
+            where: { id: payment.id },
+            data: { status: 'failed' },
+          }),
+          this.prisma.memberPackage.update({
+            where: { id: payment.member_package_id },
+            data: { status: 'cancelled' },
+          }),
+        ]);
         break;
 
       // PENDING and other unrecognized statuses are intentionally ignored —
@@ -62,14 +70,11 @@ export class PaymentsService {
   }
 
   async findAll(query: PaginationDto) {
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 10;
     const result = await paginate(
       this.prisma,
       this.prisma.payment,
       { orderBy: { created_at: 'desc' } },
-      page,
-      limit,
+      query,
     );
 
     return {
@@ -101,7 +106,7 @@ export class PaymentsService {
   private serialize(payment: Payment & Record<string, any>) {
     return {
       ...payment,
-      amount: Number(payment.amount),
+      amount: toNumber(payment.amount),
     };
   }
 }
