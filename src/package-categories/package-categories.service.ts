@@ -5,6 +5,7 @@ import { UpdatePackageCategoryDto } from './dto/update-package-category.dto';
 import { handlePrismaError } from '../common/helpers/prisma-error.helper';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { paginate } from '../common/utils/paginate.util';
+import { deletedResponse } from '../common/utils/deleted-response.util';
 
 @Injectable()
 export class PackageCategoriesService {
@@ -21,17 +22,14 @@ export class PackageCategoriesService {
   }
 
   async findAll(query: PaginationDto) {
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 10;
-
     return paginate(
       this.prisma,
       this.prisma.packageCategory,
       { orderBy: { created_at: 'desc' } },
-      page,
-      limit,
+      query,
     );
   }
+
   async findOne(id: string) {
     const category = await this.prisma.packageCategory.findUnique({
       where: { id },
@@ -69,6 +67,6 @@ export class PackageCategoriesService {
     }
 
     await this.prisma.packageCategory.delete({ where: { id } });
-    return { message: 'Package category deleted successfully' };
+    return deletedResponse('Package category');
   }
 }

@@ -10,6 +10,7 @@ import { PublishReviewDto } from './dto/publish-review.dto';
 import { handlePrismaError } from '../common/helpers/prisma-error.helper';
 import { FindReviewsDto } from './dto/find-review.dto';
 import { paginate } from '../common/utils/paginate.util';
+import { resolveMemberId } from '../common/helpers/resolve-member.helper';
 
 const REVIEW_WINDOW_DAYS = 14;
 
@@ -17,20 +18,8 @@ const REVIEW_WINDOW_DAYS = 14;
 export class ReviewsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private async resolveMemberId(userId: string): Promise<string> {
-    const member = await this.prisma.member.findUnique({
-      where: { user_id: userId },
-    });
-
-    if (!member || member.deleted_at) {
-      throw new NotFoundException('Member not found');
-    }
-
-    return member.id;
-  }
-
   async create(userId: string, dto: CreateReviewDto) {
-    const memberId = await this.resolveMemberId(userId);
+    const memberId = await resolveMemberId(this.prisma, userId);
 
     const memberPackage = await this.prisma.memberPackage.findUnique({
       where: { id: dto.member_package_id },
@@ -78,9 +67,6 @@ export class ReviewsService {
   }
 
   async findPublished(query: FindReviewsDto) {
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 10;
-
     return paginate(
       this.prisma,
       this.prisma.review,
@@ -93,8 +79,7 @@ export class ReviewsService {
           member_package: { select: { package: { select: { name: true } } } },
         },
       },
-      page,
-      limit,
+      query,
     );
   }
 

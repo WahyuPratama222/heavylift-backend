@@ -3,6 +3,7 @@ import { PaymentsService } from './payments.service';
 import { Public } from '../common/decorators/public.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { PaginationDto } from '../common/dto/pagination.dto';
+import { XenditWebhookDto } from './dto/xendit-webhook.dto';
 
 @Controller('payments')
 export class PaymentsController {
@@ -13,9 +14,9 @@ export class PaymentsController {
   @HttpCode(HttpStatus.OK)
   handleWebhook(
     @Headers('x-callback-token') callbackToken: string,
-    @Body() payload: any,
+    @Body() dto: XenditWebhookDto,
   ) {
-    return this.paymentsService.handleWebhook(callbackToken, payload);
+    return this.paymentsService.handleWebhook(callbackToken, dto);
   }
 
   @Roles('owner')

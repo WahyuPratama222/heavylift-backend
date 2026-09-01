@@ -4,6 +4,7 @@ import { CreateTrainerDto } from './dto/create-trainer.dto';
 import { UpdateTrainerDto } from './dto/update-trainer.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { paginate } from '../common/utils/paginate.util';
+import { deletedResponse } from '../common/utils/deleted-response.util';
 
 @Injectable()
 export class TrainersService {
@@ -16,15 +17,11 @@ export class TrainersService {
   }
 
   async findAll(query: PaginationDto) {
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 10;
-
     return paginate(
       this.prisma,
       this.prisma.trainer,
       { where: { is_active: true }, orderBy: { created_at: 'desc' } },
-      page,
-      limit,
+      query,
     );
   }
 
@@ -52,6 +49,6 @@ export class TrainersService {
 
     await this.prisma.trainer.delete({ where: { id } });
 
-    return { message: 'Trainer deleted successfully' };
+    return deletedResponse('Trainer');
   }
 }

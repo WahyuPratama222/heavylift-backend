@@ -1,20 +1,21 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Xendit } from 'xendit-node';
 
 @Injectable()
 export class XenditService {
   private readonly xenditClient: Xendit;
 
-  constructor() {
-    const secretKey = process.env.XENDIT_SECRET_KEY;
+  constructor(private readonly config: ConfigService) {
+    const secretKey = this.config.get<string>('XENDIT_SECRET_KEY');
 
     if (!secretKey) {
-        throw new Error('XENDIT_SECRET_KEY is not defined in environment variables');
+      throw new Error('XENDIT_SECRET_KEY is not defined in environment variables');
     }
 
     this.xenditClient = new Xendit({ secretKey });
-    }
-    
+  }
+
   async createInvoice(params: {
     externalId: string;
     amount: number;

@@ -1,9 +1,9 @@
 import {
   Injectable,
-  ConflictException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { RegisterDto } from './dto/register.dto';
@@ -12,6 +12,9 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomUUID } from 'crypto';
 import ms, { StringValue } from 'ms';
+import { handlePrismaError } from '../common/helpers/prisma-error.helper';
+import { getRefreshTokenKey, getSessionsKey } from '../common/helpers/redis-key.helper';
+import { JwtPayload } from '../common/interfaces/jwt-payload.interface';
 
 @Injectable()
 export class AuthService {
@@ -19,6 +22,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly redis: RedisService,
+    private readonly config: ConfigService,
   ) {}
 
   private hashToken(token: string): string {
@@ -32,59 +36,57 @@ export class AuthService {
     role: string;
   }) {
     const jti = randomUUID();
-    const refreshExpiresIn = (process.env.JWT_REFRESH_EXPIRES_IN || '7d') as StringValue;
+    const refreshExpiresIn = (this.config.get<string>('JWT_REFRESH_EXPIRES_IN') || '7d') as StringValue;
 
     const access_token = await this.jwt.signAsync(payload);
     const refresh_token = await this.jwt.signAsync(
       { ...payload, jti },
       {
-        secret: process.env.JWT_REFRESH_SECRET,
+        secret: this.config.get<string>('JWT_REFRESH_SECRET'),
         expiresIn: refreshExpiresIn,
       },
     );
 
     const ttlSeconds = Math.floor(ms(refreshExpiresIn) / 1000);
-    const tokenKey = `refresh_token:${payload.sub}:${jti}`;
+    const tokenKey = getRefreshTokenKey(payload.sub, jti);
 
     // Store hash, not the raw token — Redis dump/leak shouldn't hand out usable tokens
     await this.redis.set(tokenKey, this.hashToken(refresh_token), ttlSeconds);
-    await this.redis.sadd(`refresh_sessions:${payload.sub}`, jti);
+    await this.redis.sadd(getSessionsKey(payload.sub), jti);
 
     return { access_token, refresh_token };
   }
 
   async register(dto: RegisterDto) {
-    const existing = await this.prisma.user.findUnique({
-      where: { email: dto.email },
-    });
-
-    if (existing) {
-      throw new ConflictException('Email already registered');
-    }
-
     const hashedPassword = await bcrypt.hash(dto.password, 10);
 
-    const result = await this.prisma.$transaction(async (tx) => {
-      const user = await tx.user.create({
-        data: {
-          email: dto.email,
-          password: hashedPassword,
-          role: 'member',
-        },
-      });
+    let result: { user: any; member: any };
 
-      const member = await tx.member.create({
-        data: {
-          user_id: user.id,
-          name: dto.name,
-          phone: dto.phone,
-          gender: dto.gender,
-          address: dto.address,
-        },
-      });
+    try {
+      result = await this.prisma.$transaction(async (tx) => {
+        const user = await tx.user.create({
+          data: {
+            email: dto.email,
+            password: hashedPassword,
+            role: 'member',
+          },
+        });
 
-      return { user, member };
-    });
+        const member = await tx.member.create({
+          data: {
+            user_id: user.id,
+            name: dto.name,
+            phone: dto.phone,
+            gender: dto.gender,
+            address: dto.address,
+          },
+        });
+
+        return { user, member };
+      });
+    } catch (error) {
+      handlePrismaError(error, 'Email already registered');
+    }
 
     const tokens = await this.generateTokens({
       sub: result.user.id,
@@ -142,28 +144,28 @@ export class AuthService {
 
   // Rotate valid refresh token, or wipe every session for this user on reuse detection
   async refreshTokens(dto: RefreshTokenDto) {
-    let payload: { sub: string; email: string; role: string; jti: string };
+    let payload: JwtPayload & { jti: string };
 
     try {
       payload = await this.jwt.verifyAsync(dto.refresh_token, {
-        secret: process.env.JWT_REFRESH_SECRET,
+        secret: this.config.get<string>('JWT_REFRESH_SECRET'),
       });
     } catch {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
-    const tokenKey = `refresh_token:${payload.sub}:${payload.jti}`;
+    const tokenKey = getRefreshTokenKey(payload.sub, payload.jti);
     const storedHash = await this.redis.get(tokenKey);
     const incomingHash = this.hashToken(dto.refresh_token);
 
     if (!storedHash || storedHash !== incomingHash) {
       // Token not found (already rotated/used) or mismatched — treat as compromised
-      const sessionsKey = `refresh_sessions:${payload.sub}`;
+      const sessionsKey = getSessionsKey(payload.sub);
       const allJtis = await this.redis.smembers(sessionsKey);
 
       if (allJtis.length > 0) {
-        const keysToDelete = allJtis.map(
-          (jti) => `refresh_token:${payload.sub}:${jti}`,
+        const keysToDelete = allJtis.map((jti) =>
+          getRefreshTokenKey(payload.sub, jti),
         );
         await this.redis.pipelineDel(keysToDelete);
       }
@@ -176,7 +178,7 @@ export class AuthService {
 
     // Valid — rotate: retire this session id, issue a fresh one
     await this.redis.del(tokenKey);
-    await this.redis.srem(`refresh_sessions:${payload.sub}`, payload.jti);
+    await this.redis.srem(getSessionsKey(payload.sub), payload.jti);
 
     return this.generateTokens({
       sub: payload.sub,
@@ -188,12 +190,12 @@ export class AuthService {
   // Revoke one specific device session
   async logout(dto: RefreshTokenDto) {
     try {
-      const payload: { sub: string; jti: string } = await this.jwt.verifyAsync(
+      const payload: JwtPayload & { jti: string } = await this.jwt.verifyAsync(
         dto.refresh_token,
-        { secret: process.env.JWT_REFRESH_SECRET },
+        { secret: this.config.get<string>('JWT_REFRESH_SECRET') },
       );
-      await this.redis.del(`refresh_token:${payload.sub}:${payload.jti}`);
-      await this.redis.srem(`refresh_sessions:${payload.sub}`, payload.jti);
+      await this.redis.del(getRefreshTokenKey(payload.sub, payload.jti));
+      await this.redis.srem(getSessionsKey(payload.sub), payload.jti);
     } catch {
       // Already invalid/expired — logout is idempotent, nothing to clean up
     }
