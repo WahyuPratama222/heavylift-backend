@@ -8,8 +8,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
@@ -85,16 +85,16 @@ model User {
 }
 
 model Member {
-  id            String   @id @default(uuid())
-  user_id       String   @unique
+  id            String    @id @default(uuid())
+  user_id       String    @unique
   name          String
   phone         String?
   photo_url     String?
   date_of_birth DateTime?
   gender        Gender?
   address       String?
-  created_at    DateTime @default(now()) 
-  updated_at    DateTime @updatedAt
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
   deleted_at    DateTime?
 
   user            User             @relation(fields: [user_id], references: [id], onDelete: Cascade)
@@ -112,7 +112,7 @@ model Trainer {
   specialization String?
   bio            String?
   is_active      Boolean  @default(true)
-  created_at     DateTime @default(now()) 
+  created_at     DateTime @default(now())
   updated_at     DateTime @updatedAt
 
   @@map("trainers")
@@ -140,7 +140,7 @@ model Package {
   include_trainer Boolean  @default(false)
   benefits        Json?
   is_active       Boolean  @default(true)
-  created_at      DateTime @default(now()) 
+  created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
 
   category        PackageCategory  @relation(fields: [category_id], references: [id])
@@ -157,31 +157,35 @@ model MemberPackage {
   start_date DateTime      @db.Date
   end_date   DateTime      @db.Date
   status     PackageStatus @default(pending_payment)
-  created_at DateTime @default(now()) 
-  updated_at DateTime @updatedAt
+  created_at DateTime      @default(now())
+  updated_at DateTime      @updatedAt
 
   member   Member    @relation(fields: [member_id], references: [id], onDelete: Cascade)
   package  Package   @relation(fields: [package_id], references: [id])
   payments Payment[]
   reviews  Review?
 
+  @@index([member_id])
+  @@index([status])
   @@map("member_packages")
 }
 
 model Payment {
-  id                  String        @id @default(uuid())
-  member_package_id   String
-  amount              Decimal       @db.Decimal(10, 2)
-  status              PaymentStatus @default(pending)
-  payment_method      String?
-  xendit_invoice_id   String?       @unique
-  xendit_invoice_url  String?
-  paid_at             DateTime?
-  created_at          DateTime @default(now()) 
-  updated_at          DateTime @updatedAt
+  id                 String        @id @default(uuid())
+  member_package_id  String
+  amount             Decimal       @db.Decimal(10, 2)
+  status             PaymentStatus @default(pending)
+  payment_method     String?
+  xendit_invoice_id  String?       @unique
+  xendit_invoice_url String?
+  paid_at            DateTime?
+  created_at         DateTime      @default(now())
+  updated_at         DateTime      @updatedAt
 
   member_package MemberPackage @relation(fields: [member_package_id], references: [id], onDelete: Cascade)
 
+  @@index([member_package_id])
+  @@index([status])
   @@map("payments")
 }
 
@@ -194,18 +198,19 @@ model Attendance {
 
   member Member @relation(fields: [member_id], references: [id], onDelete: Cascade)
 
+  @@index([member_id])
   @@map("attendances")
 }
 
 model Equipment {
   id          String             @id @default(uuid())
-  name        String         @unique
+  name        String             @unique
   description String?
   category    String?
   condition   EquipmentCondition @default(good)
   is_active   Boolean            @default(true)
-  created_at  DateTime @default(now()) 
-  updated_at  DateTime @updatedAt
+  created_at  DateTime           @default(now())
+  updated_at  DateTime           @updatedAt
 
   photos EquipmentPhoto[]
 
@@ -217,10 +222,11 @@ model EquipmentPhoto {
   equipment_id String
   url          String
   order        Int      @default(0)
-  created_at   DateTime @default(now()) 
+  created_at   DateTime @default(now())
 
   equipment Equipment @relation(fields: [equipment_id], references: [id], onDelete: Cascade)
 
+  @@index([equipment_id])
   @@map("equipment_photos")
 }
 
@@ -231,7 +237,7 @@ model Review {
   rating            Int
   comment           String?
   is_published      Boolean  @default(false)
-  created_at        DateTime @default(now()) 
+  created_at        DateTime @default(now())
   updated_at        DateTime @updatedAt
 
   member         Member        @relation(fields: [member_id], references: [id], onDelete: Cascade)
@@ -241,19 +247,20 @@ model Review {
 }
 
 model Announcement {
-  id          String             @id @default(uuid())
-  title       String
-  content     String
-  type        AnnouncementType   @default(manual)
-  target      AnnouncementTarget @default(all)
-  package_id  String?
+  id           String             @id @default(uuid())
+  title        String
+  content      String
+  type         AnnouncementType   @default(manual)
+  target       AnnouncementTarget @default(all)
+  package_id   String?
   published_at DateTime?
-  expired_at  DateTime?
-  created_at  DateTime @default(now()) 
-  updated_at  DateTime @updatedAt
+  expired_at   DateTime?
+  created_at   DateTime           @default(now())
+  updated_at   DateTime           @updatedAt
 
   package Package? @relation(fields: [package_id], references: [id])
 
+  @@index([package_id])
   @@map("announcements")
 }
 
@@ -274,11 +281,11 @@ model GymSetting {
 }
 
 model GymSchedule {
-  id         String  @id @default(uuid())
-  day        Day     @unique
+  id         String   @id @default(uuid())
+  day        Day      @unique
   open_time  String
   close_time String
-  is_closed  Boolean @default(false)
+  is_closed  Boolean  @default(false)
   updated_at DateTime @updatedAt
 
   @@map("gym_schedules")
