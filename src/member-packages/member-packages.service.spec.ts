@@ -3,6 +3,7 @@ import { ConflictException, NotFoundException } from '@nestjs/common';
 import { MemberPackagesService } from './member-packages.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { XenditService } from '../xendit/xendit.service';
+import { Prisma } from '@prisma/client';
 
 describe('MemberPackagesService', () => {
   let service: MemberPackagesService;
@@ -21,10 +22,11 @@ describe('MemberPackagesService', () => {
     ...overrides,
   });
 
+
   const makePackage = (overrides = {}) => ({
     id: packageId,
     name: 'Bulanan Hemat',
-    price: 100000,
+    price: new Prisma.Decimal(100000),
     duration_days: 30,
     ...overrides,
   });
@@ -76,7 +78,7 @@ describe('MemberPackagesService', () => {
       });
       prisma.payment.create.mockResolvedValueOnce({
         id: 'payment-1',
-        amount: 100000,
+        amount: new Prisma.Decimal(100000),
         status: 'pending',
         xendit_invoice_url: 'https://checkout-staging.xendit.co/web/xnd-invoice-1',
       });
@@ -84,6 +86,11 @@ describe('MemberPackagesService', () => {
       const result = await service.create(userId, userEmail, {
         package_id: packageId,
       });
+
+      expect(result.package.price).toBe(100000);
+      expect(typeof result.package.price).toBe('number');
+      expect(result.payment.amount).toBe(100000);
+      expect(typeof result.payment.amount).toBe('number');
 
       expect(xendit.createInvoice).toHaveBeenCalledWith(
         expect.objectContaining({ externalId: 'mp-1', amount: 100000 }),

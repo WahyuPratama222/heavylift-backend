@@ -4,6 +4,20 @@ import { XenditService } from '../xendit/xendit.service';
 import { CreateMemberPackageDto } from './dto/create-member-package.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { paginate } from '../common/utils/paginate.util';
+import { resolveMemberId } from '../common/helpers/resolve-member.helper';
+import { toNumber } from '../common/utils/decimal.util';
+
+function formatMemberPackage(mp: any) {
+  return {
+    ...mp,
+    package: mp.package
+      ? { ...mp.package, price: toNumber(mp.package.price) }
+      : mp.package,
+    payments: mp.payments
+      ? mp.payments.map((p: any) => ({ ...p, amount: toNumber(p.amount) }))
+      : mp.payments,
+  };
+}
 
 @Injectable()
 export class MemberPackagesService {
@@ -12,20 +26,8 @@ export class MemberPackagesService {
     private readonly xendit: XenditService,
   ) {}
 
-  private async resolveMemberId(userId: string): Promise<string> {
-    const member = await this.prisma.member.findUnique({
-      where: { user_id: userId },
-    });
-
-    if (!member || member.deleted_at) {
-      throw new NotFoundException('Member not found');
-    }
-
-    return member.id;
-  }
-
   async create(userId: string, userEmail: string, dto: CreateMemberPackageDto) {
-    const memberId = await this.resolveMemberId(userId);
+    const memberId = await resolveMemberId(this.prisma, userId);
 
     const pkg = await this.prisma.package.findUnique({
       where: { id: dto.package_id },
@@ -81,10 +83,10 @@ export class MemberPackagesService {
 
     return {
       ...memberPackage,
-      package: { name: pkg.name, price: pkg.price },
+      package: { name: pkg.name, price: toNumber(pkg.price) },
       payment: {
         id: payment.id,
-        amount: payment.amount,
+        amount: toNumber(payment.amount),
         status: payment.status,
         xendit_invoice_url: payment.xendit_invoice_url,
       },
@@ -92,29 +94,42 @@ export class MemberPackagesService {
   }
 
   async findMy(userId: string, query: PaginationDto) {
-    const memberId = await this.resolveMemberId(userId);
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 10;
-    return paginate(this.prisma, this.prisma.memberPackage, {
-      where: { member_id: memberId },
-      orderBy: { created_at: 'desc' },
-      include: {
-        package: { select: { name: true, price: true } },
-        payments: { select: { id: true, amount: true, status: true, payment_method: true, paid_at: true } },
+    const memberId = await resolveMemberId(this.prisma, userId);
+
+    const result = await paginate(
+      this.prisma,
+      this.prisma.memberPackage,
+      {
+        where: { member_id: memberId },
+        orderBy: { created_at: 'desc' },
+        include: {
+          package: { select: { name: true, price: true } },
+          payments: {
+            select: { id: true, amount: true, status: true, payment_method: true, paid_at: true },
+          },
+        },
       },
-    }, page, limit);
+      query,
+    );
+
+    return { ...result, data: result.data.map(formatMemberPackage) };
   }
 
   async findAll(query: PaginationDto) {
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 10;
-    return paginate(this.prisma, this.prisma.memberPackage, {
-      orderBy: { created_at: 'desc' },
-      include: {
-        member: { select: { id: true, name: true } },
-        package: { select: { name: true, price: true } },
-        payments: { select: { id: true, amount: true, status: true, paid_at: true } },
+    const result = await paginate(
+      this.prisma,
+      this.prisma.memberPackage,
+      {
+        orderBy: { created_at: 'desc' },
+        include: {
+          member: { select: { id: true, name: true } },
+          package: { select: { name: true, price: true } },
+          payments: { select: { id: true, amount: true, status: true, paid_at: true } },
+        },
       },
-    }, page, limit);
+      query,
+    );
+
+    return { ...result, data: result.data.map(formatMemberPackage) };
   }
 }
