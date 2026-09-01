@@ -14,19 +14,19 @@ export class GymSettingsService {
       update: dto,
       create: {
         id: this.GYM_SETTINGS_ID,
-        gym_name: dto.gym_name ?? 'HeavyLift Gym',
         ...dto,
+        gym_name: dto.gym_name ?? 'HeavyLift Gym',
       },
     });
   }
 
   async findOne() {
     const settings = await this.prisma.gymSetting.findUnique({
-        where: { id: this.GYM_SETTINGS_ID },
+      where: { id: this.GYM_SETTINGS_ID },
     });
 
     if (!settings) throw new NotFoundException('Gym settings not found');
 
     return settings;
-    }
+  }
 }

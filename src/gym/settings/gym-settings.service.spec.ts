@@ -58,6 +58,19 @@ describe('GymSettingsService', () => {
         }),
       );
     });
+
+    it('should not let undefined gym_name override the fallback (regression)', async () => {
+      const dto = { gym_name: undefined, phone: '0812345' };
+      mockPrisma.gymSetting.upsert.mockResolvedValue({ id: SETTINGS_ID, ...dto, gym_name: 'HeavyLift Gym' });
+
+      await service.update(dto as any);
+
+      expect(mockPrisma.gymSetting.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({ gym_name: 'HeavyLift Gym' }),
+        }),
+      );
+    });
   });
 
   // ============ findOne ============
