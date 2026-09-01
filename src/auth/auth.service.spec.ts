@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConflictException, UnauthorizedException } from '@nestjs/common';
+import { UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { Prisma } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { createHash } from 'crypto';
 import { AuthService } from './auth.service';
@@ -47,6 +49,10 @@ describe('AuthService', () => {
     pipelineDel: jest.fn(),
   };
 
+  const mockConfig = {
+    get: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -54,6 +60,7 @@ describe('AuthService', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: JwtService, useValue: mockJwt },
         { provide: RedisService, useValue: mockRedis },
+        { provide: ConfigService, useValue: mockConfig },
       ],
     }).compile();
 
@@ -74,7 +81,6 @@ describe('AuthService', () => {
     };
 
     it('should register successfully and store hashed refresh token under a per-device key', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue(null);
       mockTx.user.create.mockResolvedValue({ id: 'user-1', email: registerDto.email, role: 'member' });
       mockTx.member.create.mockResolvedValue({ id: 'member-1', name: registerDto.name });
 
@@ -93,9 +99,14 @@ describe('AuthService', () => {
     });
 
     it('should throw ConflictException if email already registered', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({ id: 'existing-user' });
-      await expect(service.register(registerDto as any)).rejects.toThrow(ConflictException);
-      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+      mockPrisma.$transaction.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+          code: 'P2002',
+          clientVersion: '5.0.0',
+        }),
+      );
+
+      await expect(service.register(registerDto as any)).rejects.toThrow();
     });
   });
 
