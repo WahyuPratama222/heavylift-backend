@@ -8,41 +8,55 @@ import {
   Param,
   Query,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { AnnouncementsService } from './announcements.service';
 import { CreateAnnouncementDto } from './dto/create-announcement.dto';
 import { UpdateAnnouncementDto } from './dto/update-announcement.dto';
 import { FindAnnouncementsDto } from './dto/find-announcement.dto';
-import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { IUser } from '../common/interfaces/user.interface';
+import { OwnerEndpoint } from '../common/decorators/owner-endpoint.decorator';
+import { MemberEndpoint } from '../common/decorators/member-endpoint.decorator';
 
+@ApiTags('Announcements')
 @Controller('announcements')
 export class AnnouncementsController {
   constructor(private readonly announcementsService: AnnouncementsService) {}
 
-  // owner - bikin announcement manual
-  @Roles('owner')
+  @ApiOperation({ summary: 'Create a manual announcement (owner only)' })
+  @ApiResponse({ status: 201, description: 'Announcement created successfully' })
+  @OwnerEndpoint()
   @Post()
   create(@Body() dto: CreateAnnouncementDto) {
     return this.announcementsService.create(dto);
   }
 
-  // member - list announcement yang relevan buat dia
-  @Roles('member')
+  @ApiOperation({
+    summary: 'List announcements relevant to the current member',
+    description:
+      'Returns published, non-expired announcements targeted at the member — either "all", or matched against their latest package status.',
+  })
+  @ApiResponse({ status: 200, description: 'Paginated list of announcements' })
+  @ApiResponse({ status: 404, description: 'Member profile not found' })
+  @MemberEndpoint()
   @Get()
   findAll(@CurrentUser() user: IUser, @Query() query: FindAnnouncementsDto) {
     return this.announcementsService.findAll(user.id, query);
   }
 
-  // owner - update announcement
-  @Roles('owner')
+  @ApiOperation({ summary: 'Update an announcement (owner only)' })
+  @ApiResponse({ status: 200, description: 'Announcement updated successfully' })
+  @ApiResponse({ status: 404, description: 'Announcement not found' })
+  @OwnerEndpoint()
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateAnnouncementDto) {
     return this.announcementsService.update(id, dto);
   }
 
-  // owner - hapus announcement
-  @Roles('owner')
+  @ApiOperation({ summary: 'Delete an announcement (owner only)' })
+  @ApiResponse({ status: 200, description: 'Announcement deleted successfully' })
+  @ApiResponse({ status: 404, description: 'Announcement not found' })
+  @OwnerEndpoint()
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.announcementsService.remove(id);
