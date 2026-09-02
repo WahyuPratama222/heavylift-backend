@@ -22,7 +22,6 @@ describe('MemberPackagesService', () => {
     ...overrides,
   });
 
-
   const makePackage = (overrides = {}) => ({
     id: packageId,
     name: 'Bulanan Hemat',
@@ -59,6 +58,19 @@ describe('MemberPackagesService', () => {
 
     service = module.get(MemberPackagesService);
     jest.resetAllMocks();
+
+    // Default $transaction behavior: interactive-callback form (used by
+    // create()) runs the callback with `prisma` itself as `tx`, so
+    // tx.memberPackage.create/tx.payment.create resolve to the same mocks
+    // set up below. The array form (used internally by paginate.util via
+    // findMy/findAll) is overridden per-test with mockResolvedValueOnce,
+    // which Jest prioritizes over this default implementation.
+    prisma.$transaction.mockImplementation((arg: any) => {
+      if (typeof arg === 'function') {
+        return arg(prisma);
+      }
+      return Promise.resolve(arg);
+    });
   });
 
   describe('create', () => {
@@ -138,6 +150,29 @@ describe('MemberPackagesService', () => {
       await expect(
         service.create(userId, userEmail, { package_id: packageId }),
       ).rejects.toThrow(ConflictException);
+    });
+
+    it('rolls back memberPackage creation when Xendit invoice creation fails', async () => {
+      prisma.member.findUnique.mockResolvedValueOnce(makeMember());
+      prisma.package.findUnique.mockResolvedValueOnce(makePackage());
+      prisma.memberPackage.findFirst.mockResolvedValueOnce(null);
+      prisma.memberPackage.create.mockResolvedValueOnce({
+        id: 'mp-1',
+        member_id: memberId,
+        package_id: packageId,
+        status: 'pending_payment',
+      });
+      xendit.createInvoice.mockRejectedValueOnce(
+        new Error('Xendit is unavailable'),
+      );
+
+      await expect(
+        service.create(userId, userEmail, { package_id: packageId }),
+      ).rejects.toThrow('Xendit is unavailable');
+
+      // payment.create should never run — the transaction rolled back
+      // before reaching this step.
+      expect(prisma.payment.create).not.toHaveBeenCalled();
     });
   });
 

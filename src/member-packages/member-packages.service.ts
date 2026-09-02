@@ -54,44 +54,54 @@ export class MemberPackagesService {
     const endDate = new Date(startDate);
     endDate.setDate(endDate.getDate() + pkg.duration_days);
 
-    const memberPackage = await this.prisma.memberPackage.create({
-      data: {
-        member_id: memberId,
-        package_id: pkg.id,
-        start_date: startDate,
-        end_date: endDate,
-        status: 'pending_payment',
-      },
-    });
+    // Wrapped in $transaction: if Xendit invoice creation fails, everything
+    // inside (including memberPackage.create) rolls back automatically —
+    // no manual cleanup needed. timeout bumped to 15s to leave room for
+    // the external Xendit API call.
+    return this.prisma.$transaction(
+      async (tx) => {
+        const memberPackage = await tx.memberPackage.create({
+          data: {
+            member_id: memberId,
+            package_id: pkg.id,
+            start_date: startDate,
+            end_date: endDate,
+            status: 'pending_payment',
+          },
+        });
 
-    const invoice = await this.xendit.createInvoice({
-      externalId: memberPackage.id,
-      amount: Number(pkg.price),
-      description: `Payment for ${pkg.name}`,
-      payerEmail: userEmail,
-    });
+        const invoice = await this.xendit.createInvoice({
+          externalId: memberPackage.id,
+          amount: Number(pkg.price),
+          description: `Payment for ${pkg.name}`,
+          payerEmail: userEmail,
+        });
 
-    const payment = await this.prisma.payment.create({
-      data: {
-        member_package_id: memberPackage.id,
-        amount: pkg.price,
-        status: 'pending',
-        xendit_invoice_id: invoice.id,
-        xendit_invoice_url: invoice.invoiceUrl,
-      },
-    });
+        const payment = await tx.payment.create({
+          data: {
+            member_package_id: memberPackage.id,
+            amount: pkg.price,
+            status: 'pending',
+            xendit_invoice_id: invoice.id,
+            xendit_invoice_url: invoice.invoiceUrl,
+          },
+        });
 
-    return {
-      ...memberPackage,
-      package: { name: pkg.name, price: toNumber(pkg.price) },
-      payment: {
-        id: payment.id,
-        amount: toNumber(payment.amount),
-        status: payment.status,
-        xendit_invoice_url: payment.xendit_invoice_url,
+        return {
+          ...memberPackage,
+          package: { name: pkg.name, price: toNumber(pkg.price) },
+          payment: {
+            id: payment.id,
+            amount: toNumber(payment.amount),
+            status: payment.status,
+            xendit_invoice_url: payment.xendit_invoice_url,
+          },
+        };
       },
-    };
+      { timeout: 15000 },
+    );
   }
+
 
   async findMy(userId: string, query: PaginationDto) {
     const memberId = await resolveMemberId(this.prisma, userId);

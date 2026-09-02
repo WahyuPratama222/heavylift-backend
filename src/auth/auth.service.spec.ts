@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { UnauthorizedException } from '@nestjs/common';
+import { ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
@@ -20,6 +20,11 @@ import { randomUUID } from 'crypto';
 
 const hashToken = (token: string) =>
   createHash('sha256').update(token).digest('hex');
+
+const p2002Error = new Prisma.PrismaClientKnownRequestError(
+  'Unique constraint failed on the fields: (`email`)',
+  { code: 'P2002', clientVersion: '5.0.0' },
+);
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -99,14 +104,25 @@ describe('AuthService', () => {
     });
 
     it('should throw ConflictException if email already registered', async () => {
-      mockPrisma.$transaction.mockRejectedValue(
-        new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
-          code: 'P2002',
-          clientVersion: '5.0.0',
-        }),
-      );
+      mockTx.user.create.mockRejectedValue(p2002Error);
 
       await expect(service.register(registerDto as any)).rejects.toThrow();
+      expect(mockTx.member.create).not.toHaveBeenCalled();
+    });
+
+    it('should throw ServiceUnavailableException if Redis fails after user/member are created', async () => {
+      mockTx.user.create.mockResolvedValue({ id: 'user-1', email: registerDto.email, role: 'member' });
+      mockTx.member.create.mockResolvedValue({ id: 'member-1', name: registerDto.name });
+      mockRedis.set.mockRejectedValueOnce(new Error('Redis connection lost'));
+
+      await expect(service.register(registerDto as any)).rejects.toThrow(
+        ServiceUnavailableException,
+      );
+
+      // user/member creation already committed — the DB transaction is not
+      // affected by a Redis failure that happens after it resolves.
+      expect(mockTx.user.create).toHaveBeenCalled();
+      expect(mockTx.member.create).toHaveBeenCalled();
     });
   });
 
@@ -153,6 +169,20 @@ describe('AuthService', () => {
       mockPrisma.user.findUnique.mockResolvedValue(null);
       await expect(service.login(loginDto)).rejects.toThrow(UnauthorizedException);
     });
+
+    it('should throw ServiceUnavailableException if Redis fails while registering the session', async () => {
+      const hashedPassword = await bcrypt.hash('password123', 10);
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 'user-1',
+        email: loginDto.email,
+        password: hashedPassword,
+        role: 'member',
+        member: { name: 'Wahyu Pratama', deleted_at: null },
+      });
+      mockRedis.sadd.mockRejectedValueOnce(new Error('Redis connection lost'));
+
+      await expect(service.login(loginDto)).rejects.toThrow(ServiceUnavailableException);
+    });
   });
 
   // ============ REFRESH TOKENS ============
@@ -196,6 +226,29 @@ describe('AuthService', () => {
       mockJwt.verifyAsync.mockRejectedValue(new Error('jwt expired'));
       await expect(service.refreshTokens(dto)).rejects.toThrow(UnauthorizedException);
     });
+
+    it('should throw ServiceUnavailableException if Redis fails while reading the stored hash', async () => {
+      mockJwt.verifyAsync.mockResolvedValue(payload);
+      mockRedis.get.mockRejectedValueOnce(new Error('Redis connection lost'));
+
+      await expect(service.refreshTokens(dto)).rejects.toThrow(ServiceUnavailableException);
+    });
+
+    it('should throw ServiceUnavailableException if Redis fails while revoking sessions on reuse detection', async () => {
+      mockJwt.verifyAsync.mockResolvedValue(payload);
+      mockRedis.get.mockResolvedValue(null); // triggers reuse-detection branch
+      mockRedis.smembers.mockRejectedValueOnce(new Error('Redis connection lost'));
+
+      await expect(service.refreshTokens(dto)).rejects.toThrow(ServiceUnavailableException);
+    });
+
+    it('should throw ServiceUnavailableException if Redis fails while rotating a valid session', async () => {
+      mockJwt.verifyAsync.mockResolvedValue(payload);
+      mockRedis.get.mockResolvedValue(hashToken('valid-refresh-token'));
+      mockRedis.del.mockRejectedValueOnce(new Error('Redis connection lost'));
+
+      await expect(service.refreshTokens(dto)).rejects.toThrow(ServiceUnavailableException);
+    });
   });
 
   // ============ LOGOUT ============
@@ -219,6 +272,15 @@ describe('AuthService', () => {
       expect(mockRedis.del).not.toHaveBeenCalled();
       expect(mockRedis.srem).not.toHaveBeenCalled();
       expect(result).toEqual({ message: 'Logged out successfully' });
+    });
+
+    it('should throw ServiceUnavailableException if Redis fails while a valid token is being logged out', async () => {
+      mockJwt.verifyAsync.mockResolvedValue({ sub: 'user-1', jti: 'jti-old' });
+      mockRedis.del.mockRejectedValueOnce(new Error('Redis connection lost'));
+
+      await expect(
+        service.logout({ refresh_token: 'valid-refresh-token' }),
+      ).rejects.toThrow(ServiceUnavailableException);
     });
   });
 });

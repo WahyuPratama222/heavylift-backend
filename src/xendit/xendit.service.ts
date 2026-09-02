@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Xendit } from 'xendit-node';
 
@@ -24,14 +24,20 @@ export class XenditService {
   }) {
     const { Invoice } = this.xenditClient;
 
-    return Invoice.createInvoice({
-      data: {
-        externalId: params.externalId,
-        amount: params.amount,
-        description: params.description,
-        payerEmail: params.payerEmail,
-        currency: 'IDR',
-      },
-    });
+    try {
+      return await Invoice.createInvoice({
+        data: {
+          externalId: params.externalId,
+          amount: params.amount,
+          description: params.description,
+          payerEmail: params.payerEmail,
+          currency: 'IDR',
+        },
+      });
+    } catch (error) {
+      throw new ServiceUnavailableException(
+        'Failed to create payment invoice, please try again',
+      );
+    }
   }
 }
