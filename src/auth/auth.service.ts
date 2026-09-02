@@ -1,5 +1,6 @@
 import {
   Injectable,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -29,12 +30,18 @@ export class AuthService {
     return createHash('sha256').update(token).digest('hex');
   }
 
-  // Generate a token pair; refresh token gets its own jti (session id) per login
-  private async generateTokens(payload: {
-    sub: string;
-    email: string;
-    role: string;
-  }) {
+  // 1. BUAT HELPER REDIS YANG AMAN: Menghemat try-catch berulang di bawah
+  private async safeRedisCall<T>(op: () => Promise<T>): Promise<T> {
+    try {
+      return await op();
+    } catch (error) {
+      throw new ServiceUnavailableException(
+        'Session service is currently unavailable, please try again',
+      );
+    }
+  }
+
+  private async generateTokens(payload: { sub: string; email: string; role: string }) {
     const jti = randomUUID();
     const refreshExpiresIn = (this.config.get<string>('JWT_REFRESH_EXPIRES_IN') || '7d') as StringValue;
 
@@ -50,9 +57,10 @@ export class AuthService {
     const ttlSeconds = Math.floor(ms(refreshExpiresIn) / 1000);
     const tokenKey = getRefreshTokenKey(payload.sub, jti);
 
-    // Store hash, not the raw token — Redis dump/leak shouldn't hand out usable tokens
-    await this.redis.set(tokenKey, this.hashToken(refresh_token), ttlSeconds);
-    await this.redis.sadd(getSessionsKey(payload.sub), jti);
+    await this.safeRedisCall(async () => {
+      await this.redis.set(tokenKey, this.hashToken(refresh_token), ttlSeconds);
+      await this.redis.sadd(getSessionsKey(payload.sub), jti);
+    });
 
     return { access_token, refresh_token };
   }
@@ -60,34 +68,33 @@ export class AuthService {
   async register(dto: RegisterDto) {
     const hashedPassword = await bcrypt.hash(dto.password, 10);
 
-    let result: { user: any; member: any };
-
-    try {
-      result = await this.prisma.$transaction(async (tx) => {
-        const user = await tx.user.create({
+    const result = await this.prisma.$transaction(async (tx) => {
+      const user = await tx.user
+        .create({
           data: {
             email: dto.email,
             password: hashedPassword,
             role: 'member',
           },
-        });
+        })
+        .catch((err) => handlePrismaError(err, 'Email already registered'));
 
-        const member = await tx.member.create({
-          data: {
-            user_id: user.id,
-            name: dto.name,
-            phone: dto.phone,
-            gender: dto.gender,
-            address: dto.address,
-          },
-        });
-
-        return { user, member };
+      const member = await tx.member.create({
+        data: {
+          user_id: user.id,
+          name: dto.name,
+          phone: dto.phone,
+          gender: dto.gender,
+          address: dto.address,
+        },
       });
-    } catch (error) {
-      handlePrismaError(error, 'Email already registered');
-    }
 
+      return { user, member };
+    });
+
+    // Di luar transaction — kalau Redis gagal di sini, user & member yang
+    // baru dibuat TETAP tersimpan (bukan half-broken; mereka bisa langsung
+    // login manual lewat POST /auth/login yang gak bergantung ke sini).
     const tokens = await this.generateTokens({
       sub: result.user.id,
       email: result.user.email,
@@ -111,16 +118,11 @@ export class AuthService {
       include: { member: true },
     });
 
-    if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-
-    if (user.member?.deleted_at) {
+    if (!user || user.member?.deleted_at) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
     const isPasswordValid = await bcrypt.compare(dto.password, user.password);
-
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -142,43 +144,45 @@ export class AuthService {
     };
   }
 
-  // Rotate valid refresh token, or wipe every session for this user on reuse detection
   async refreshTokens(dto: RefreshTokenDto) {
     let payload: JwtPayload & { jti: string };
 
     try {
-      payload = await this.jwt.verifyAsync(dto.refresh_token, {
-        secret: this.config.get<string>('JWT_REFRESH_SECRET'),
-      });
+      payload = await this.jwt.verifyAsync<JwtPayload & { jti: string }>(
+        dto.refresh_token,
+        { secret: this.config.get<string>('JWT_REFRESH_SECRET') },
+      );
     } catch {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
     const tokenKey = getRefreshTokenKey(payload.sub, payload.jti);
-    const storedHash = await this.redis.get(tokenKey);
+    
+    // Gunakan helper terpusat agar kode terlihat searah dan tegak lurus (Clean)
+    const storedHash = await this.safeRedisCall(() => this.redis.get(tokenKey));
     const incomingHash = this.hashToken(dto.refresh_token);
 
     if (!storedHash || storedHash !== incomingHash) {
-      // Token not found (already rotated/used) or mismatched — treat as compromised
-      const sessionsKey = getSessionsKey(payload.sub);
-      const allJtis = await this.redis.smembers(sessionsKey);
+      await this.safeRedisCall(async () => {
+        const sessionsKey = getSessionsKey(payload.sub);
+        const allJtis = await this.redis.smembers(sessionsKey);
 
-      if (allJtis.length > 0) {
-        const keysToDelete = allJtis.map((jti) =>
-          getRefreshTokenKey(payload.sub, jti),
-        );
-        await this.redis.pipelineDel(keysToDelete);
-      }
-      await this.redis.del(sessionsKey);
+        if (allJtis.length > 0) {
+          const keysToDelete = allJtis.map((jti) => getRefreshTokenKey(payload.sub, jti));
+          await this.redis.pipelineDel(keysToDelete);
+        }
+        await this.redis.del(sessionsKey);
+      });
 
       throw new UnauthorizedException(
         'Security Breach: Token reuse detected. All sessions revoked.',
       );
     }
 
-    // Valid — rotate: retire this session id, issue a fresh one
-    await this.redis.del(tokenKey);
-    await this.redis.srem(getSessionsKey(payload.sub), payload.jti);
+    await this.safeRedisCall(async () => {
+      await this.redis.del(tokenKey);
+      await this.redis.srem(getSessionsKey(payload.sub), payload.jti);
+    });
 
     return this.generateTokens({
       sub: payload.sub,
@@ -187,18 +191,25 @@ export class AuthService {
     });
   }
 
-  // Revoke one specific device session
   async logout(dto: RefreshTokenDto) {
+    let payload: (JwtPayload & { jti: string }) | undefined;
+
     try {
-      const payload: JwtPayload & { jti: string } = await this.jwt.verifyAsync(
+      payload = await this.jwt.verifyAsync<JwtPayload & { jti: string }>(
         dto.refresh_token,
         { secret: this.config.get<string>('JWT_REFRESH_SECRET') },
       );
-      await this.redis.del(getRefreshTokenKey(payload.sub, payload.jti));
-      await this.redis.srem(getSessionsKey(payload.sub), payload.jti);
     } catch {
-      // Already invalid/expired — logout is idempotent, nothing to clean up
+      // Logout aman (idempotent), abaikan jika token palsu/expired
     }
+
+    if (payload) {
+      await this.safeRedisCall(async () => {
+        await this.redis.del(getRefreshTokenKey(payload!.sub, payload!.jti));
+        await this.redis.srem(getSessionsKey(payload!.sub), payload!.jti);
+      });
+    }
+
     return { message: 'Logged out successfully' };
   }
 }
