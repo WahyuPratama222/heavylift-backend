@@ -1,6 +1,9 @@
 import { PrismaClient } from '@prisma/client';
+import { logStart, logDone } from '../log.util';
 
 export async function seedGymSettings(prisma: PrismaClient) {
+  logStart('gym-settings');
+
   await prisma.gymSetting.upsert({
     where: { id: 'gym-settings-singleton' },
     update: {},
@@ -13,5 +16,5 @@ export async function seedGymSettings(prisma: PrismaClient) {
     },
   });
 
-  console.log('✓ Gym settings seeded');
+  logDone('gym-settings', 'Gym settings seeded (singleton)');
 }
