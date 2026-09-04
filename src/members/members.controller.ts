@@ -23,7 +23,6 @@ import { MemberEndpoint } from '../common/decorators/member-endpoint.decorator';
 export class MembersController {
   constructor(private readonly membersService: MembersService) {}
 
-  // member - profile
   @ApiOperation({ summary: "Get the current member's own profile" })
   @ApiResponse({ status: 200, description: 'Member profile' })
   @ApiResponse({ status: 404, description: 'Member not found' })
@@ -33,7 +32,6 @@ export class MembersController {
     return this.membersService.getProfile(user.id);
   }
 
-  // member - update profile
   @ApiOperation({ summary: "Update the current member's own profile" })
   @ApiResponse({ status: 200, description: 'Profile updated successfully' })
   @ApiResponse({ status: 404, description: 'Member not found' })
@@ -43,7 +41,6 @@ export class MembersController {
     return this.membersService.updateProfile(user.id, dto);
   }
 
-  // member - update photo
   @ApiOperation({ summary: "Update the current member's own profile photo" })
   @ApiResponse({ status: 200, description: 'Photo updated successfully' })
   @ApiResponse({ status: 404, description: 'Member not found' })
@@ -53,7 +50,6 @@ export class MembersController {
     return this.membersService.updatePhoto(user.id, dto);
   }
 
-  // owner - list semua member
   @ApiOperation({
     summary: 'List all members (owner only)',
     description: 'Supports filtering by name search, package status, and gender.',
@@ -65,7 +61,6 @@ export class MembersController {
     return this.membersService.findAll(query);
   }
 
-  // owner - detail 1 member
   @ApiOperation({ summary: 'Get a single member by id, including package/payment history (owner only)' })
   @ApiResponse({ status: 200, description: 'Member details' })
   @ApiResponse({ status: 404, description: 'Member not found' })
@@ -75,7 +70,6 @@ export class MembersController {
     return this.membersService.findOne(id);
   }
 
-  // owner - soft delete member
   @ApiOperation({ summary: 'Soft-delete a member (owner only)' })
   @ApiResponse({ status: 200, description: 'Member deleted successfully' })
   @ApiResponse({ status: 404, description: 'Member not found' })

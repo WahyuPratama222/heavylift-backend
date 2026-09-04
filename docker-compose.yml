@@ -1,6 +1,6 @@
 services:
   app:
-    image: ghcr.io/wahyup/heavylift-core:latest
+    image: ghcr.io/wahyupratama222/heavylift-backend:latest
     container_name: heavylift-app
     restart: unless-stopped
     ports:
