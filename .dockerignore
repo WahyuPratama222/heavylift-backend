@@ -1,0 +1,40 @@
+# Dependency directories
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-debug.log*
+
+# Production build outputs
+dist
+build
+out
+
+# Cache directories
+.cache
+.npm
+.turbo
+
+# Environment variables & sensitive config files
+.env
+.env.local
+.env.*.local
+
+# Git control files
+.git
+.gitignore
+.github
+
+# OS generated files & IDE settings
+.DS_Store
+Thumbs.db
+.vscode
+.idea
+
+# Documentation, testing & temporary files
+README.md
+Dockerfile*
+docker-compose*.yml
+coverage
+*.log
