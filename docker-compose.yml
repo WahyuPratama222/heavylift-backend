@@ -1,10 +1,24 @@
 services:
+  app:
+    image: ghcr.io/wahyup/heavylift-core:latest
+    container_name: heavylift-app
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - heavylift-net
+
   postgres:
     image: postgres:16-alpine
     container_name: heavylift-postgres
     restart: unless-stopped
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -12,17 +26,17 @@ services:
     volumes:
       - postgres_heavylift_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - heavylift-net
 
   redis:
     image: redis:7-alpine
     container_name: heavylift-redis
     restart: unless-stopped
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_heavylift_data:/data
     healthcheck:
@@ -30,7 +44,13 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - heavylift-net
 
 volumes:
   postgres_heavylift_data:
   redis_heavylift_data:
+
+networks:
+  heavylift-net:
+    driver: bridge
