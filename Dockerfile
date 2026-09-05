@@ -22,7 +22,13 @@ RUN npm run build
 
 # ---- Production stage ----
 FROM node:20-alpine AS production
+
+# Set working directory inside the container
 WORKDIR /app
+
+# Install OpenSSL and libc6-compat for Prisma compatibility
+RUN apk update && apk add --no-cache openssl libc6-compat
+
 ENV NODE_ENV=production
 ENV PORT=3000
 
