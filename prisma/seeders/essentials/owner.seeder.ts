@@ -1,9 +1,12 @@
 import { PrismaClient } from '@prisma/client';
-import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { logDone, logStart } from '../log.util';
 
-export async function seedOwner(prisma: PrismaClient, config: ConfigService) {
+interface ConfigLike {
+  get<T = string>(key: string): T | undefined;
+}
+
+export async function seedOwner(prisma: PrismaClient, config: ConfigLike) {
   logStart('owner');
 
   const email = config.get<string>('OWNER_EMAIL');
