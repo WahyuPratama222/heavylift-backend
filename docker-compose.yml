@@ -1,3 +1,5 @@
+name: heavylift-backend
+
 services:
   app:
     image: ghcr.io/wahyupratama222/heavylift-backend:latest

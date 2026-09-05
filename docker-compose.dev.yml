@@ -1,3 +1,5 @@
+name: heavylift-backend-dev
+
 services:
   app:
     build:
