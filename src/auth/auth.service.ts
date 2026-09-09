@@ -157,10 +157,12 @@ export class AuthService {
     }
 
     const tokenKey = getRefreshTokenKey(payload.sub, payload.jti);
-    
-    // Gunakan helper terpusat agar kode terlihat searah dan tegak lurus (Clean)
-    const storedHash = await this.safeRedisCall(() => this.redis.get(tokenKey));
-    const incomingHash = this.hashToken(dto.refresh_token);
+        const incomingHash = this.hashToken(dto.refresh_token);
+
+    // GETDEL: Read and delete in a single atomic operation.
+    // Once a request successfully retrieves the value, the key is immediately removed —
+    // any subsequent requests (race/reuse) are guaranteed to get null.
+    const storedHash = await this.safeRedisCall(() => this.redis.getdel(tokenKey));
 
     if (!storedHash || storedHash !== incomingHash) {
       await this.safeRedisCall(async () => {
@@ -175,14 +177,12 @@ export class AuthService {
       });
 
       throw new UnauthorizedException(
-        'Security Breach: Token reuse detected. All sessions revoked.',
+        'Security Breach: Token reuse detected. All sessions revoked',
       );
     }
 
-    await this.safeRedisCall(async () => {
-      await this.redis.del(tokenKey);
-      await this.redis.srem(getSessionsKey(payload.sub), payload.jti);
-    });
+// srem is still necessary — GETDEL only removes the hash key, not the entry in the session set
+    await this.safeRedisCall(() => this.redis.srem(getSessionsKey(payload.sub), payload.jti));
 
     return this.generateTokens({
       sub: payload.sub,
