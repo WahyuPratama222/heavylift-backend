@@ -16,7 +16,7 @@ export function createLoggerConfig(configService: ConfigService): Params {
       },
       transport: isProduction
         ? undefined
-        : { target: 'pino-pretty', options: { singleLine: true, colorize: true } },
+        : { target: 'pino-pretty', options: { singleLine: false, colorize: true } },
       redact: {
         paths: ['req.headers.authorization', 'req.body.password'],
         censor: '**REDACTED**',
