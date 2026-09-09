@@ -52,6 +52,7 @@ describe('AuthService', () => {
     srem: jest.fn(),
     smembers: jest.fn(),
     pipelineDel: jest.fn(),
+    getdel: jest.fn(),
   };
 
   const mockConfig = {
@@ -197,19 +198,20 @@ describe('AuthService', () => {
 
     it('should rotate the session if the hash matches what is stored in redis', async () => {
       mockJwt.verifyAsync.mockResolvedValue(payload);
-      mockRedis.get.mockResolvedValue(hashToken('valid-refresh-token'));
+      mockRedis.getdel.mockResolvedValue(hashToken('valid-refresh-token'));
 
       const result = await service.refreshTokens(dto);
 
       expect(result.access_token).toBe('dummy-token');
-      expect(mockRedis.get).toHaveBeenCalledWith('refresh_token:user-1:jti-old');
-      expect(mockRedis.del).toHaveBeenCalledWith('refresh_token:user-1:jti-old');
+      // getdel baca + hapus hash token dalam 1 operasi atomik —
+      // gak ada lagi del(tokenKey) terpisah setelahnya
+      expect(mockRedis.getdel).toHaveBeenCalledWith('refresh_token:user-1:jti-old');
       expect(mockRedis.srem).toHaveBeenCalledWith('refresh_sessions:user-1', 'jti-old');
     });
 
     it('should revoke every session for that user upon token reuse detection', async () => {
       mockJwt.verifyAsync.mockResolvedValue(payload);
-      mockRedis.get.mockResolvedValue(null); // stored hash missing — already rotated/used
+      mockRedis.getdel.mockResolvedValue(null); // stored hash missing — already rotated/used
       mockRedis.smembers.mockResolvedValue(['jti-old', 'jti-other-device']);
 
       await expect(service.refreshTokens(dto)).rejects.toThrow(UnauthorizedException);
@@ -227,25 +229,25 @@ describe('AuthService', () => {
       await expect(service.refreshTokens(dto)).rejects.toThrow(UnauthorizedException);
     });
 
-    it('should throw ServiceUnavailableException if Redis fails while reading the stored hash', async () => {
+    it('should throw ServiceUnavailableException if Redis fails while reading/deleting the stored hash', async () => {
       mockJwt.verifyAsync.mockResolvedValue(payload);
-      mockRedis.get.mockRejectedValueOnce(new Error('Redis connection lost'));
+      mockRedis.getdel.mockRejectedValueOnce(new Error('Redis connection lost'));
 
       await expect(service.refreshTokens(dto)).rejects.toThrow(ServiceUnavailableException);
     });
 
     it('should throw ServiceUnavailableException if Redis fails while revoking sessions on reuse detection', async () => {
       mockJwt.verifyAsync.mockResolvedValue(payload);
-      mockRedis.get.mockResolvedValue(null); // triggers reuse-detection branch
+      mockRedis.getdel.mockResolvedValue(null); // triggers reuse-detection branch
       mockRedis.smembers.mockRejectedValueOnce(new Error('Redis connection lost'));
 
       await expect(service.refreshTokens(dto)).rejects.toThrow(ServiceUnavailableException);
     });
 
-    it('should throw ServiceUnavailableException if Redis fails while rotating a valid session', async () => {
+    it('should throw ServiceUnavailableException if Redis fails while removing the session from the active set', async () => {
       mockJwt.verifyAsync.mockResolvedValue(payload);
-      mockRedis.get.mockResolvedValue(hashToken('valid-refresh-token'));
-      mockRedis.del.mockRejectedValueOnce(new Error('Redis connection lost'));
+      mockRedis.getdel.mockResolvedValue(hashToken('valid-refresh-token'));
+      mockRedis.srem.mockRejectedValueOnce(new Error('Redis connection lost'));
 
       await expect(service.refreshTokens(dto)).rejects.toThrow(ServiceUnavailableException);
     });

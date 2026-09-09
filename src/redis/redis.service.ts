@@ -46,4 +46,9 @@ export class RedisService {
     keys.forEach((key) => pipeline.del(key));
     await pipeline.exec();
   }
+
+  // Get the value of a key and delete it
+  async getdel(key: string): Promise<string | null> {
+    return this.client.getdel(key);
+  }
 }
