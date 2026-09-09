@@ -17,6 +17,8 @@ import { handlePrismaError } from '../common/helpers/prisma-error.helper';
 import { getRefreshTokenKey, getSessionsKey } from '../common/helpers/redis-key.helper';
 import { JwtPayload } from '../common/interfaces/jwt-payload.interface';
 
+const DUMMY_HASH = '$2b$10$$2b$10$EDFqeoE8NarBaLuE/Q2q9.jUiq5FDfSVa9wnyIAZe70diFgpJdjWa';
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -118,12 +120,10 @@ export class AuthService {
       include: { member: true },
     });
 
-    if (!user || user.member?.deleted_at) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
+    const passwordToCompare = user?.password ?? DUMMY_HASH;
+    const isPasswordValid = await bcrypt.compare(dto.password, passwordToCompare);
 
-    const isPasswordValid = await bcrypt.compare(dto.password, user.password);
-    if (!isPasswordValid) {
+    if (!user || user.member?.deleted_at || !isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -157,7 +157,7 @@ export class AuthService {
     }
 
     const tokenKey = getRefreshTokenKey(payload.sub, payload.jti);
-        const incomingHash = this.hashToken(dto.refresh_token);
+    const incomingHash = this.hashToken(dto.refresh_token);
 
     // GETDEL: Read and delete in a single atomic operation.
     // Once a request successfully retrieves the value, the key is immediately removed —
@@ -181,7 +181,7 @@ export class AuthService {
       );
     }
 
-// srem is still necessary — GETDEL only removes the hash key, not the entry in the session set
+    // srem is still necessary — GETDEL only removes the hash key, not the entry in the session set
     await this.safeRedisCall(() => this.redis.srem(getSessionsKey(payload.sub), payload.jti));
 
     return this.generateTokens({
