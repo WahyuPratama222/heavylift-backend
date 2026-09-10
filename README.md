@@ -52,19 +52,19 @@ Project ini sepenuhnya **dockerized** dan sudah memiliki **CI/CD** (GitHub Actio
 
 ## 🛠️ Tech Stack
 
-| Kategori | Teknologi |
-|---|---|
-| Framework | NestJS (TypeScript) |
-| Database | PostgreSQL |
-| ORM | Prisma 5 |
-| Cache / Session | Redis |
-| Payment Gateway | Xendit |
-| Auth | JWT (access + refresh token) |
-| Dokumentasi API | Swagger / OpenAPI |
-| Logging | Pino (`nestjs-pino`) |
-| Testing | Jest |
-| Containerization | Docker, Docker Compose |
-| CI/CD | GitHub Actions → GHCR |
+| Kategori         | Teknologi                    |
+| ---------------- | ---------------------------- |
+| Framework        | NestJS (TypeScript)          |
+| Database         | PostgreSQL                   |
+| ORM              | Prisma 5                     |
+| Cache / Session  | Redis                        |
+| Payment Gateway  | Xendit                       |
+| Auth             | JWT (access + refresh token) |
+| Dokumentasi API  | Swagger / OpenAPI            |
+| Logging          | Pino (`nestjs-pino`)         |
+| Testing          | Jest                         |
+| Containerization | Docker, Docker Compose       |
+| CI/CD            | GitHub Actions → GHCR        |
 
 ---
 
@@ -92,19 +92,19 @@ Copy `.env.example` menjadi `.env`, lalu isi semua value:
 cp .env.example .env
 ```
 
-| Variabel | Deskripsi |
-|---|---|
-| `NODE_ENV` | `development` atau `production`. **Untuk Docker, nilai ini di-inject dari `docker-compose.yml`/`docker-compose.dev.yml`, bukan dari `.env` — lihat catatan penting di bawah** |
-| `PORT` | Port aplikasi (default `3000`) |
-| `CORS_ORIGIN` | Origin frontend yang diizinkan mengakses API |
-| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | Kredensial database PostgreSQL |
-| `POSTGRES_PORT` / `REDIS_PORT` | Port yang di-expose ke host **khusus untuk development** (untuk debugging manual via DBeaver/pgAdmin/redis-cli) |
-| `DATABASE_URL` / `DIRECT_URL` | Connection string Prisma ke PostgreSQL |
-| `REDIS_URL` | Connection string ke Redis |
-| `JWT_SECRET` / `JWT_REFRESH_SECRET` | Secret key untuk access & refresh token |
-| `JWT_EXPIRES_IN` / `JWT_REFRESH_EXPIRES_IN` | Masa berlaku token |
-| `OWNER_EMAIL` / `OWNER_PASSWORD` | Kredensial akun owner yang dibuat oleh seeder |
-| `XENDIT_SECRET_KEY` / `XENDIT_CALLBACK_TOKEN` | Kredensial Xendit (gunakan TEST key untuk development) |
+| Variabel                                              | Deskripsi                                                                                                                                                                     |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NODE_ENV`                                            | `development` atau `production`. **Untuk Docker, nilai ini di-inject dari `docker-compose.yml`/`docker-compose.dev.yml`, bukan dari `.env` — lihat catatan penting di bawah** |
+| `PORT`                                                | Port aplikasi (default `3000`)                                                                                                                                                |
+| `CORS_ORIGIN`                                         | Origin frontend yang diizinkan mengakses API                                                                                                                                  |
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | Kredensial database PostgreSQL                                                                                                                                                |
+| `POSTGRES_PORT` / `REDIS_PORT`                        | Port yang di-expose ke host **khusus untuk development** (untuk debugging manual via DBeaver/pgAdmin/redis-cli)                                                               |
+| `DATABASE_URL` / `DIRECT_URL`                         | Connection string Prisma ke PostgreSQL                                                                                                                                        |
+| `REDIS_URL`                                           | Connection string ke Redis                                                                                                                                                    |
+| `JWT_SECRET` / `JWT_REFRESH_SECRET`                   | Secret key untuk access & refresh token                                                                                                                                       |
+| `JWT_EXPIRES_IN` / `JWT_REFRESH_EXPIRES_IN`           | Masa berlaku token                                                                                                                                                            |
+| `OWNER_EMAIL` / `OWNER_PASSWORD`                      | Kredensial akun owner yang dibuat oleh seeder                                                                                                                                 |
+| `XENDIT_SECRET_KEY` / `XENDIT_CALLBACK_TOKEN`         | Kredensial Xendit (gunakan TEST key untuk development)                                                                                                                        |
 
 > ⚠️ **Penting soal `NODE_ENV`:** nilai `NODE_ENV` di dalam `.env` **tidak** menentukan mode aplikasi ketika dijalankan lewat Docker. `docker-compose.yml` (production) dan `docker-compose.dev.yml` (development) masing-masing sudah menetapkan `NODE_ENV` secara eksplisit lewat `environment:`, yang selalu menang dibanding isi `.env`. Ini disengaja — supaya production selalu jalan sebagai `production` dan development selalu `development`, apa pun isi `.env` di komputer kamu.
 
@@ -254,122 +254,122 @@ Semua endpoint yang butuh autentikasi/role sudah didokumentasikan lengkap dengan
 
 ### Auth
 
-| Method | Endpoint | Access | Kegunaan |
-|---|---|---|---|
-| POST | `/auth/register` | Public | Register member baru |
-| POST | `/auth/login` | Public | Login, return JWT token |
-| POST | `/auth/refresh` | Public | Refresh access token |
-| POST | `/auth/logout` | Member / Owner | Logout, revoke refresh token |
+| Method | Endpoint         | Access         | Kegunaan                     |
+| ------ | ---------------- | -------------- | ---------------------------- |
+| POST   | `/auth/register` | Public         | Register member baru         |
+| POST   | `/auth/login`    | Public         | Login, return JWT token      |
+| POST   | `/auth/refresh`  | Public         | Refresh access token         |
+| POST   | `/auth/logout`   | Member / Owner | Logout, revoke refresh token |
 
 ### Members
 
-| Method | Endpoint | Access | Kegunaan |
-|---|---|---|---|
-| GET | `/members/profile` | Member | Lihat profile sendiri |
-| PATCH | `/members/profile` | Member | Update profile sendiri |
-| PUT | `/members/profile/photo` | Member | Update foto profile |
-| GET | `/members` | Owner | List semua member + filter |
-| GET | `/members/:id` | Owner | Detail 1 member |
-| DELETE | `/members/:id` | Owner | Soft delete member |
+| Method | Endpoint                 | Access | Kegunaan                   |
+| ------ | ------------------------ | ------ | -------------------------- |
+| GET    | `/members/profile`       | Member | Lihat profile sendiri      |
+| PATCH  | `/members/profile`       | Member | Update profile sendiri     |
+| PUT    | `/members/profile/photo` | Member | Update foto profile        |
+| GET    | `/members`               | Owner  | List semua member + filter |
+| GET    | `/members/:id`           | Owner  | Detail 1 member            |
+| DELETE | `/members/:id`           | Owner  | Soft delete member         |
 
 ### Package Categories
 
-| Method | Endpoint | Access | Kegunaan |
-|---|---|---|---|
-| POST | `/package-categories` | Owner | Tambah kategori paket |
-| GET | `/package-categories` | Public | List semua kategori paket |
-| GET | `/package-categories/:id` | Public | Detail 1 kategori paket |
-| PATCH | `/package-categories/:id` | Owner | Update kategori paket |
-| DELETE | `/package-categories/:id` | Owner | Hapus kategori paket |
+| Method | Endpoint                  | Access | Kegunaan                  |
+| ------ | ------------------------- | ------ | ------------------------- |
+| POST   | `/package-categories`     | Owner  | Tambah kategori paket     |
+| GET    | `/package-categories`     | Public | List semua kategori paket |
+| GET    | `/package-categories/:id` | Public | Detail 1 kategori paket   |
+| PATCH  | `/package-categories/:id` | Owner  | Update kategori paket     |
+| DELETE | `/package-categories/:id` | Owner  | Hapus kategori paket      |
 
 ### Packages
 
-| Method | Endpoint | Access | Kegunaan |
-|---|---|---|---|
-| POST | `/packages` | Owner | Tambah paket |
-| GET | `/packages` | Public | List paket aktif + filter |
-| GET | `/packages/:id` | Public | Detail 1 paket |
-| PATCH | `/packages/:id` | Owner | Update paket |
-| DELETE | `/packages/:id` | Owner | Hapus paket |
+| Method | Endpoint        | Access | Kegunaan                  |
+| ------ | --------------- | ------ | ------------------------- |
+| POST   | `/packages`     | Owner  | Tambah paket              |
+| GET    | `/packages`     | Public | List paket aktif + filter |
+| GET    | `/packages/:id` | Public | Detail 1 paket            |
+| PATCH  | `/packages/:id` | Owner  | Update paket              |
+| DELETE | `/packages/:id` | Owner  | Hapus paket               |
 
 ### Member Packages
 
-| Method | Endpoint | Access | Kegunaan |
-|---|---|---|---|
-| POST | `/member-packages` | Member | Beli paket |
-| GET | `/member-packages/my` | Member | History paket sendiri |
-| GET | `/member-packages` | Owner | List semua transaksi paket |
+| Method | Endpoint              | Access | Kegunaan                   |
+| ------ | --------------------- | ------ | -------------------------- |
+| POST   | `/member-packages`    | Member | Beli paket                 |
+| GET    | `/member-packages/my` | Member | History paket sendiri      |
+| GET    | `/member-packages`    | Owner  | List semua transaksi paket |
 
 ### Payments
 
-| Method | Endpoint | Access | Kegunaan |
-|---|---|---|---|
-| POST | `/payments/webhook` | Public | Callback dari Xendit |
-| GET | `/payments` | Owner | List semua pembayaran |
-| GET | `/payments/:id` | Owner | Detail 1 pembayaran |
+| Method | Endpoint            | Access | Kegunaan              |
+| ------ | ------------------- | ------ | --------------------- |
+| POST   | `/payments/webhook` | Public | Callback dari Xendit  |
+| GET    | `/payments`         | Owner  | List semua pembayaran |
+| GET    | `/payments/:id`     | Owner  | Detail 1 pembayaran   |
 
 ### Attendances
 
-| Method | Endpoint | Access | Kegunaan |
-|---|---|---|---|
-| POST | `/attendances/check-in` | Member | Check in (simulasi QR) |
-| POST | `/attendances/check-out` | Member | Check out |
-| GET | `/attendances/my` | Member | History absensi sendiri |
-| GET | `/attendances/status` | Member | Cek sesi aktif member saat ini |
-| GET | `/attendances` | Owner | List semua absensi |
+| Method | Endpoint                 | Access | Kegunaan                       |
+| ------ | ------------------------ | ------ | ------------------------------ |
+| POST   | `/attendances/check-in`  | Member | Check in (simulasi QR)         |
+| POST   | `/attendances/check-out` | Member | Check out                      |
+| GET    | `/attendances/my`        | Member | History absensi sendiri        |
+| GET    | `/attendances/status`    | Member | Cek sesi aktif member saat ini |
+| GET    | `/attendances`           | Owner  | List semua absensi             |
 
 ### Equipments
 
-| Method | Endpoint | Access | Kegunaan |
-|---|---|---|---|
-| POST | `/equipments` | Owner | Tambah alat |
-| GET | `/equipments` | Public | List alat |
-| GET | `/equipments/:id` | Public | Detail alat + foto |
-| PATCH | `/equipments/:id` | Owner | Update alat |
-| DELETE | `/equipments/:id` | Owner | Hapus alat |
-| POST | `/equipments/:id/photos` | Owner | Tambah foto alat (batch) |
-| DELETE | `/equipments/:id/photos/:photoId` | Owner | Hapus foto alat |
+| Method | Endpoint                          | Access | Kegunaan                 |
+| ------ | --------------------------------- | ------ | ------------------------ |
+| POST   | `/equipments`                     | Owner  | Tambah alat              |
+| GET    | `/equipments`                     | Public | List alat                |
+| GET    | `/equipments/:id`                 | Public | Detail alat + foto       |
+| PATCH  | `/equipments/:id`                 | Owner  | Update alat              |
+| DELETE | `/equipments/:id`                 | Owner  | Hapus alat               |
+| POST   | `/equipments/:id/photos`          | Owner  | Tambah foto alat (batch) |
+| DELETE | `/equipments/:id/photos/:photoId` | Owner  | Hapus foto alat          |
 
 ### Reviews
 
-| Method | Endpoint | Access | Kegunaan |
-|---|---|---|---|
-| POST | `/reviews` | Member | Submit review |
-| GET | `/reviews` | Public | List review yang published |
-| PATCH | `/reviews/:id/publish` | Owner | Publish/unpublish review |
+| Method | Endpoint               | Access | Kegunaan                   |
+| ------ | ---------------------- | ------ | -------------------------- |
+| POST   | `/reviews`             | Member | Submit review              |
+| GET    | `/reviews`             | Public | List review yang published |
+| PATCH  | `/reviews/:id/publish` | Owner  | Publish/unpublish review   |
 
 ### Announcements
 
-| Method | Endpoint | Access | Kegunaan |
-|---|---|---|---|
-| POST | `/announcements` | Owner | Buat announcement manual |
-| GET | `/announcements` | Member | List announcement aktif |
-| PATCH | `/announcements/:id` | Owner | Update announcement |
-| DELETE | `/announcements/:id` | Owner | Hapus announcement |
+| Method | Endpoint             | Access | Kegunaan                 |
+| ------ | -------------------- | ------ | ------------------------ |
+| POST   | `/announcements`     | Owner  | Buat announcement manual |
+| GET    | `/announcements`     | Member | List announcement aktif  |
+| PATCH  | `/announcements/:id` | Owner  | Update announcement      |
+| DELETE | `/announcements/:id` | Owner  | Hapus announcement       |
 
 ### Gym
 
-| Method | Endpoint | Access | Kegunaan |
-|---|---|---|---|
-| GET | `/gym/settings` | Public | Info gym |
-| PATCH | `/gym/settings` | Owner | Update info gym |
-| GET | `/gym/schedules` | Public | Jadwal buka gym |
-| PATCH | `/gym/schedules/:day` | Owner | Update jadwal buka gym |
+| Method | Endpoint              | Access | Kegunaan               |
+| ------ | --------------------- | ------ | ---------------------- |
+| GET    | `/gym/settings`       | Public | Info gym               |
+| PATCH  | `/gym/settings`       | Owner  | Update info gym        |
+| GET    | `/gym/schedules`      | Public | Jadwal buka gym        |
+| PATCH  | `/gym/schedules/:day` | Owner  | Update jadwal buka gym |
 
 ### Trainers
 
-| Method | Endpoint | Access | Kegunaan |
-|---|---|---|---|
-| POST | `/trainers` | Owner | Tambah trainer |
-| GET | `/trainers` | Public | List trainer |
-| PATCH | `/trainers/:id` | Owner | Update trainer |
-| DELETE | `/trainers/:id` | Owner | Hapus trainer |
+| Method | Endpoint        | Access | Kegunaan       |
+| ------ | --------------- | ------ | -------------- |
+| POST   | `/trainers`     | Owner  | Tambah trainer |
+| GET    | `/trainers`     | Public | List trainer   |
+| PATCH  | `/trainers/:id` | Owner  | Update trainer |
+| DELETE | `/trainers/:id` | Owner  | Hapus trainer  |
 
 ### Health
 
-| Method | Endpoint | Access | Kegunaan |
-|---|---|---|---|
-| GET | `/health` | Public | Health check (Database & Redis) |
+| Method | Endpoint  | Access | Kegunaan                        |
+| ------ | --------- | ------ | ------------------------------- |
+| GET    | `/health` | Public | Health check (Database & Redis) |
 
 ---
 
@@ -407,6 +407,7 @@ docker pull ghcr.io/wahyupratama222/heavylift-backend:latest
 **Penyebab:** Folder `prisma/` (berisi `seed.ts`, `seed-dummy.ts`) ikut ter-compile oleh `nest build` karena tidak di-exclude di `tsconfig.build.json`. Akibatnya TypeScript menentukan "common root" naik ke level project (bukan `src/` saja), sehingga output menjadi nested (`dist/src/main.js`), bukan `dist/main.js` seperti yang diharapkan `CMD` di `Dockerfile`.
 
 **Solusi:** pastikan folder `prisma` masuk ke `exclude` pada `tsconfig.build.json`:
+
 ```json
 {
   "extends": "./tsconfig.json",
@@ -431,6 +432,7 @@ docker pull ghcr.io/wahyupratama222/heavylift-backend:latest
 **Penyebab:** kedua compose file memakai nama service yang sama (`app`, `postgres`, `redis`) dan dijalankan dari folder yang sama, sehingga Docker Compose menganggap keduanya adalah project yang sama (nama project default diambil dari nama folder).
 
 **Solusi:** tambahkan `name:` eksplisit dan berbeda di masing-masing compose file:
+
 ```yaml
 # docker-compose.yml
 name: heavylift-backend
@@ -444,6 +446,7 @@ name: heavylift-backend-dev
 **Penyebab:** `docker-compose.yml` dan `docker-compose.dev.yml` sama-sama default ke port `3000`/`5432`/`6379` di host.
 
 **Solusi:** jalankan satu mode saja (matikan salah satu dengan `docker compose down` sebelum berpindah), atau override port host untuk salah satunya:
+
 ```bash
 PORT=3001 docker compose -f docker-compose.dev.yml up -d
 ```
@@ -453,9 +456,10 @@ PORT=3001 docker compose -f docker-compose.dev.yml up -d
 <div align="center">
   <sub>Dibuat dan dikembangkan oleh <strong>Wahyu Pratama</strong></sub>
 
-  <br /><br />
+<br /><br />
 
-  <a href="https://github.com/WahyuPratama222"><img src="https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white" /></a>
-  <a href="https://www.linkedin.com/in/wahyu-pratama-ptm"><img src="https://img.shields.io/badge/LinkedIn-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white" /></a>
-  <a href="https://mail.google.com/mail/?view=cm&fs=1&to=wahyupratama110107@gmail.com"><img src="https://img.shields.io/badge/Email-D14836?style=for-the-badge&logo=gmail&logoColor=white" /></a>
+<a href="https://github.com/WahyuPratama222"><img src="https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white" /></a>
+<a href="https://www.linkedin.com/in/wahyu-pratama-ptm"><img src="https://img.shields.io/badge/LinkedIn-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white" /></a>
+<a href="https://mail.google.com/mail/?view=cm&fs=1&to=wahyupratama110107@gmail.com"><img src="https://img.shields.io/badge/Email-D14836?style=for-the-badge&logo=gmail&logoColor=white" /></a>
+
 </div>

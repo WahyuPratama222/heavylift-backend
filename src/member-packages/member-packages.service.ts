@@ -1,4 +1,8 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { XenditService } from '../xendit/xendit.service';
 import { CreateMemberPackageDto } from './dto/create-member-package.dto';
@@ -6,15 +10,26 @@ import { PaginationDto } from '../common/dto/pagination.dto';
 import { paginate } from '../common/utils/paginate.util';
 import { resolveMemberId } from '../common/helpers/resolve-member.helper';
 import { toNumber } from '../common/utils/decimal.util';
+import { Prisma } from '@prisma/client';
 
-function formatMemberPackage(mp: any) {
+interface MemberPackageWithRelations {
+  package?:
+    | (Record<string, unknown> & { price?: Prisma.Decimal | number | null })
+    | null;
+  payments?:
+    | (Record<string, unknown> & { amount?: Prisma.Decimal | number | null })[]
+    | null;
+  [key: string]: unknown;
+}
+
+function formatMemberPackage(mp: MemberPackageWithRelations) {
   return {
     ...mp,
     package: mp.package
       ? { ...mp.package, price: toNumber(mp.package.price) }
       : mp.package,
     payments: mp.payments
-      ? mp.payments.map((p: any) => ({ ...p, amount: toNumber(p.amount) }))
+      ? mp.payments.map((p) => ({ ...p, amount: toNumber(p.amount) }))
       : mp.payments,
   };
 }
@@ -102,7 +117,6 @@ export class MemberPackagesService {
     );
   }
 
-
   async findMy(userId: string, query: PaginationDto) {
     const memberId = await resolveMemberId(this.prisma, userId);
 
@@ -115,7 +129,13 @@ export class MemberPackagesService {
         include: {
           package: { select: { name: true, price: true } },
           payments: {
-            select: { id: true, amount: true, status: true, payment_method: true, paid_at: true },
+            select: {
+              id: true,
+              amount: true,
+              status: true,
+              payment_method: true,
+              paid_at: true,
+            },
           },
         },
       },
@@ -134,7 +154,9 @@ export class MemberPackagesService {
         include: {
           member: { select: { id: true, name: true } },
           package: { select: { name: true, price: true } },
-          payments: { select: { id: true, amount: true, status: true, paid_at: true } },
+          payments: {
+            select: { id: true, amount: true, status: true, paid_at: true },
+          },
         },
       },
       query,

@@ -164,7 +164,7 @@ describe('AttendancesService', () => {
       mockPrisma.attendance.count.mockResolvedValue(1);
       mockPrisma.$transaction.mockResolvedValue([[{ id: 'att-1' }], 1]);
 
-      const result = await service.findMyHistory('user-1', {} as any);
+      const result = await service.findMyHistory('user-1', {});
 
       expect(mockPrisma.attendance.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -185,7 +185,7 @@ describe('AttendancesService', () => {
       mockPrisma.member.findUnique.mockResolvedValue(mockMember);
       mockPrisma.$transaction.mockResolvedValue([[], 0]);
 
-      await service.findMyHistory('user-1', { page: 2, limit: 5 } as any);
+      await service.findMyHistory('user-1', { page: 2, limit: 5 });
 
       expect(mockPrisma.attendance.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ skip: 5, take: 5 }),
@@ -198,7 +198,7 @@ describe('AttendancesService', () => {
     it('should return paginated data with default page/limit', async () => {
       mockPrisma.$transaction.mockResolvedValue([[], 0]);
 
-      const result = await service.findAll({} as any);
+      const result = await service.findAll({});
 
       expect(result.meta).toEqual({
         total: 0,
@@ -211,7 +211,7 @@ describe('AttendancesService', () => {
     it('should apply member_id filter', async () => {
       mockPrisma.$transaction.mockResolvedValue([[], 0]);
 
-      await service.findAll({ member_id: 'member-1' } as any);
+      await service.findAll({ member_id: 'member-1' });
 
       expect(mockPrisma.attendance.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -226,7 +226,7 @@ describe('AttendancesService', () => {
       await service.findAll({
         date_from: '2026-08-01',
         date_to: '2026-08-31',
-      } as any);
+      });
 
       expect(mockPrisma.attendance.findMany).toHaveBeenCalledWith(
         expect.objectContaining({

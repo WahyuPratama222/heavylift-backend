@@ -2,8 +2,8 @@ import { PrismaClient } from '@prisma/client';
 import { logDone, logStart } from '../log.util';
 
 export async function seedAnnouncements(prisma: PrismaClient) {
-  logStart('announcements');  
-  
+  logStart('announcements');
+
   const now = new Date();
   const in30Days = new Date(now);
   in30Days.setDate(in30Days.getDate() + 30);
@@ -13,25 +13,29 @@ export async function seedAnnouncements(prisma: PrismaClient) {
   const announcements = [
     {
       title: 'Jam Buka Spesial Libur Nasional',
-      content: 'Gym akan buka lebih pendek (08:00-16:00) selama periode libur nasional mendatang. Terima kasih atas pengertiannya.',
+      content:
+        'Gym akan buka lebih pendek (08:00-16:00) selama periode libur nasional mendatang. Terima kasih atas pengertiannya.',
       target: 'all' as const,
       package_id: null,
     },
     {
       title: 'Promo Perpanjangan Member Aktif',
-      content: 'Khusus member dengan paket aktif, dapatkan diskon 15% untuk perpanjangan paket tahunan. Berlaku sampai akhir bulan.',
+      content:
+        'Khusus member dengan paket aktif, dapatkan diskon 15% untuk perpanjangan paket tahunan. Berlaku sampai akhir bulan.',
       target: somePackage ? ('specific_package' as const) : ('all' as const),
       package_id: somePackage?.id ?? null,
     },
     {
       title: 'Yuk Gabung Sekarang, Diskon Member Baru!',
-      content: 'Belum punya paket aktif? Daftar sekarang dan dapatkan potongan harga khusus untuk paket bulanan pertamamu.',
+      content:
+        'Belum punya paket aktif? Daftar sekarang dan dapatkan potongan harga khusus untuk paket bulanan pertamamu.',
       target: 'no_package' as const,
       package_id: null,
     },
     {
       title: 'Maintenance Alat Cardio',
-      content: 'Beberapa unit treadmill akan menjalani maintenance rutin pada akhir pekan ini. Mohon maaf atas ketidaknyamanannya.',
+      content:
+        'Beberapa unit treadmill akan menjalani maintenance rutin pada akhir pekan ini. Mohon maaf atas ketidaknyamanannya.',
       target: 'all' as const,
       package_id: null,
     },
@@ -56,7 +60,7 @@ export async function seedAnnouncements(prisma: PrismaClient) {
         expired_at: in30Days,
       },
     });
-    
+
     totalCreated++;
   }
 

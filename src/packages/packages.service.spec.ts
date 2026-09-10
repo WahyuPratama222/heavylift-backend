@@ -93,7 +93,7 @@ describe('PackagesService', () => {
     it('should return all packages with price converted to Number', async () => {
       mockPrisma.$transaction.mockResolvedValue([[mockPackage], 1]);
 
-      const result = await service.findAll({} as any);
+      const result = await service.findAll({});
 
       expect(typeof result.data[0].price).toBe('number');
     });
@@ -101,7 +101,7 @@ describe('PackagesService', () => {
     it('should pass categoryId filter into where clause', async () => {
       mockPrisma.$transaction.mockResolvedValue([[], 0]);
 
-      await service.findAll({ category_id: 'cat-1' } as any);
+      await service.findAll({ category_id: 'cat-1' });
 
       expect(mockPrisma.package.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -124,9 +124,7 @@ describe('PackagesService', () => {
     it('should throw NotFoundException if package not found', async () => {
       mockPrisma.package.findUnique.mockResolvedValue(null);
 
-      await expect(service.findOne('pkg-1')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.findOne('pkg-1')).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -141,7 +139,7 @@ describe('PackagesService', () => {
 
       const result = await service.update('pkg-1', {
         name: 'Bulanan Updated',
-      } as any);
+      });
 
       expect(result.name).toBe('Bulanan Updated');
       expect(mockPrisma.packageCategory.findUnique).not.toHaveBeenCalled();
@@ -159,7 +157,7 @@ describe('PackagesService', () => {
 
       const result = await service.update('pkg-1', {
         category_id: 'cat-2',
-      } as any);
+      });
 
       expect(result.category_id).toBe('cat-2');
     });
@@ -206,18 +204,14 @@ describe('PackagesService', () => {
     it('should throw NotFoundException if package not found', async () => {
       mockPrisma.package.findUnique.mockResolvedValue(null);
 
-      await expect(service.remove('pkg-1')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.remove('pkg-1')).rejects.toThrow(NotFoundException);
     });
 
     it('should throw ConflictException if members still use this package', async () => {
       mockPrisma.package.findUnique.mockResolvedValue(mockPackage);
       mockPrisma.memberPackage.count.mockResolvedValue(2);
 
-      await expect(service.remove('pkg-1')).rejects.toThrow(
-        ConflictException,
-      );
+      await expect(service.remove('pkg-1')).rejects.toThrow(ConflictException);
       expect(mockPrisma.package.delete).not.toHaveBeenCalled();
     });
   });

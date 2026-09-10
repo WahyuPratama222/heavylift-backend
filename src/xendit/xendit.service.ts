@@ -10,7 +10,9 @@ export class XenditService {
     const secretKey = this.config.get<string>('XENDIT_SECRET_KEY');
 
     if (!secretKey) {
-      throw new Error('XENDIT_SECRET_KEY is not defined in environment variables');
+      throw new Error(
+        'XENDIT_SECRET_KEY is not defined in environment variables',
+      );
     }
 
     this.xenditClient = new Xendit({ secretKey });
@@ -34,7 +36,7 @@ export class XenditService {
           currency: 'IDR',
         },
       });
-    } catch (error) {
+    } catch {
       throw new ServiceUnavailableException(
         'Failed to create payment invoice, please try again',
       );

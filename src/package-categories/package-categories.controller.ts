@@ -24,8 +24,14 @@ export class PackageCategoriesController {
   ) {}
 
   @ApiOperation({ summary: 'Create a package category (owner only)' })
-  @ApiResponse({ status: 201, description: 'Package category created successfully' })
-  @ApiResponse({ status: 409, description: 'Package category with this name already exists' })
+  @ApiResponse({
+    status: 201,
+    description: 'Package category created successfully',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Package category with this name already exists',
+  })
   @OwnerEndpoint()
   @Post()
   create(@Body() dto: CreatePackageCategoryDto) {
@@ -33,7 +39,10 @@ export class PackageCategoriesController {
   }
 
   @ApiOperation({ summary: 'List package categories (public)' })
-  @ApiResponse({ status: 200, description: 'Paginated list of package categories' })
+  @ApiResponse({
+    status: 200,
+    description: 'Paginated list of package categories',
+  })
   @Public()
   @Get()
   findAll(@Query() query: PaginationDto) {
@@ -50,9 +59,15 @@ export class PackageCategoriesController {
   }
 
   @ApiOperation({ summary: 'Update a package category (owner only)' })
-  @ApiResponse({ status: 200, description: 'Package category updated successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Package category updated successfully',
+  })
   @ApiResponse({ status: 404, description: 'Package category not found' })
-  @ApiResponse({ status: 409, description: 'Package category with this name already exists' })
+  @ApiResponse({
+    status: 409,
+    description: 'Package category with this name already exists',
+  })
   @OwnerEndpoint()
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdatePackageCategoryDto) {
@@ -60,9 +75,15 @@ export class PackageCategoriesController {
   }
 
   @ApiOperation({ summary: 'Delete a package category (owner only)' })
-  @ApiResponse({ status: 200, description: 'Package category deleted successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Package category deleted successfully',
+  })
   @ApiResponse({ status: 404, description: 'Package category not found' })
-  @ApiResponse({ status: 409, description: 'Category still has packages assigned to it' })
+  @ApiResponse({
+    status: 409,
+    description: 'Category still has packages assigned to it',
+  })
   @OwnerEndpoint()
   @Delete(':id')
   remove(@Param('id') id: string) {

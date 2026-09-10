@@ -74,7 +74,7 @@ describe('AnnouncementsService', () => {
       });
       mockPrisma.$transaction.mockResolvedValue([[], 0]);
 
-      await service.findAll('user-1', {} as any);
+      await service.findAll('user-1', {});
 
       const callArg = mockPrisma.announcement.findMany.mock.calls[0][0];
       expect(callArg.where.AND.OR).toContainEqual({
@@ -94,7 +94,7 @@ describe('AnnouncementsService', () => {
       });
       mockPrisma.$transaction.mockResolvedValue([[], 0]);
 
-      await service.findAll('user-1', {} as any);
+      await service.findAll('user-1', {});
 
       const callArg = mockPrisma.announcement.findMany.mock.calls[0][0];
       expect(callArg.where.AND.OR).toContainEqual({ target: 'no_package' });
@@ -114,9 +114,7 @@ describe('AnnouncementsService', () => {
     it('should throw NotFoundException if announcement not found', async () => {
       mockPrisma.announcement.findUnique.mockResolvedValue(null);
 
-      await expect(service.findOne('ann-1')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.findOne('ann-1')).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -131,7 +129,7 @@ describe('AnnouncementsService', () => {
 
       const result = await service.update('ann-1', {
         title: 'Updated',
-      } as any);
+      });
 
       expect(result.title).toBe('Updated');
     });
@@ -159,9 +157,7 @@ describe('AnnouncementsService', () => {
     it('should throw NotFoundException if announcement not found', async () => {
       mockPrisma.announcement.findUnique.mockResolvedValue(null);
 
-      await expect(service.remove('ann-1')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.remove('ann-1')).rejects.toThrow(NotFoundException);
     });
   });
 });

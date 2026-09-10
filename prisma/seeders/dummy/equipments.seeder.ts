@@ -35,12 +35,17 @@ export async function seedEquipments(prisma: PrismaClient) {
           name: equipment.name,
           category: equipment.category,
           description: faker.lorem.sentence(),
-          condition: faker.helpers.arrayElement(['good', 'good', 'good', 'maintenance']),
+          condition: faker.helpers.arrayElement([
+            'good',
+            'good',
+            'good',
+            'maintenance',
+          ]),
           is_active: true,
         },
       });
       equipmentId = created.id;
-      
+
       totalCreated++;
     }
 

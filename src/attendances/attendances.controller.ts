@@ -1,4 +1,11 @@
-import { Controller, Get, Post, Query, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Query,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { AttendancesService } from './attendances.service';
 import { FindAttendancesDto } from './dto/find-attendance.dto';
@@ -16,7 +23,10 @@ export class AttendancesController {
   @ApiOperation({ summary: 'Check in to the gym (member only)' })
   @ApiResponse({ status: 201, description: 'Checked in successfully' })
   @ApiResponse({ status: 403, description: 'Member has no active package' })
-  @ApiResponse({ status: 409, description: 'Member already has an active session' })
+  @ApiResponse({
+    status: 409,
+    description: 'Member already has an active session',
+  })
   @MemberEndpoint()
   @Post('check-in')
   checkIn(@CurrentUser() user: IUser) {
@@ -34,7 +44,10 @@ export class AttendancesController {
   }
 
   @ApiOperation({ summary: "Get the current member's active session status" })
-  @ApiResponse({ status: 200, description: 'Active session, or null if not checked in' })
+  @ApiResponse({
+    status: 200,
+    description: 'Active session, or null if not checked in',
+  })
   @MemberEndpoint()
   @Get('status')
   getStatus(@CurrentUser() user: IUser) {
@@ -51,7 +64,8 @@ export class AttendancesController {
 
   @ApiOperation({
     summary: 'List all attendance records (owner only)',
-    description: 'Supports filtering by member_id and a date_from/date_to range on check_in_at.',
+    description:
+      'Supports filtering by member_id and a date_from/date_to range on check_in_at.',
   })
   @ApiResponse({ status: 200, description: 'Paginated attendance records' })
   @OwnerEndpoint()

@@ -6,6 +6,9 @@ export function OwnerEndpoint() {
   return applyDecorators(
     Roles('owner'),
     ApiBearerAuth(),
-    ApiResponse({ status: 403, description: 'Forbidden — requires owner role' }),
+    ApiResponse({
+      status: 403,
+      description: 'Forbidden — requires owner role',
+    }),
   );
 }

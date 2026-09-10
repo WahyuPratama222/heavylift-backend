@@ -14,10 +14,14 @@ import * as bcrypt from 'bcrypt';
 import { createHash, randomUUID } from 'crypto';
 import ms, { StringValue } from 'ms';
 import { handlePrismaError } from '../common/helpers/prisma-error.helper';
-import { getRefreshTokenKey, getSessionsKey } from '../common/helpers/redis-key.helper';
+import {
+  getRefreshTokenKey,
+  getSessionsKey,
+} from '../common/helpers/redis-key.helper';
 import { JwtPayload } from '../common/interfaces/jwt-payload.interface';
 
-const DUMMY_HASH = '$2b$10$$2b$10$EDFqeoE8NarBaLuE/Q2q9.jUiq5FDfSVa9wnyIAZe70diFgpJdjWa';
+const DUMMY_HASH =
+  '$2b$10$$2b$10$EDFqeoE8NarBaLuE/Q2q9.jUiq5FDfSVa9wnyIAZe70diFgpJdjWa';
 
 @Injectable()
 export class AuthService {
@@ -36,16 +40,22 @@ export class AuthService {
   private async safeRedisCall<T>(op: () => Promise<T>): Promise<T> {
     try {
       return await op();
-    } catch (error) {
+    } catch {
       throw new ServiceUnavailableException(
         'Session service is currently unavailable, please try again',
       );
     }
   }
 
-  private async generateTokens(payload: { sub: string; email: string; role: string }) {
+  private async generateTokens(payload: {
+    sub: string;
+    email: string;
+    role: string;
+  }) {
     const jti = randomUUID();
-    const refreshExpiresIn = (this.config.get<string>('JWT_REFRESH_EXPIRES_IN') || '7d') as StringValue;
+    const refreshExpiresIn = (this.config.get<string>(
+      'JWT_REFRESH_EXPIRES_IN',
+    ) || '7d') as StringValue;
 
     const access_token = await this.jwt.signAsync(payload);
     const refresh_token = await this.jwt.signAsync(
@@ -121,7 +131,10 @@ export class AuthService {
     });
 
     const passwordToCompare = user?.password ?? DUMMY_HASH;
-    const isPasswordValid = await bcrypt.compare(dto.password, passwordToCompare);
+    const isPasswordValid = await bcrypt.compare(
+      dto.password,
+      passwordToCompare,
+    );
 
     if (!user || user.member?.deleted_at || !isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
@@ -162,7 +175,9 @@ export class AuthService {
     // GETDEL: Read and delete in a single atomic operation.
     // Once a request successfully retrieves the value, the key is immediately removed —
     // any subsequent requests (race/reuse) are guaranteed to get null.
-    const storedHash = await this.safeRedisCall(() => this.redis.getdel(tokenKey));
+    const storedHash = await this.safeRedisCall(() =>
+      this.redis.getdel(tokenKey),
+    );
 
     if (!storedHash || storedHash !== incomingHash) {
       await this.safeRedisCall(async () => {
@@ -170,7 +185,9 @@ export class AuthService {
         const allJtis = await this.redis.smembers(sessionsKey);
 
         if (allJtis.length > 0) {
-          const keysToDelete = allJtis.map((jti) => getRefreshTokenKey(payload.sub, jti));
+          const keysToDelete = allJtis.map((jti) =>
+            getRefreshTokenKey(payload.sub, jti),
+          );
           await this.redis.pipelineDel(keysToDelete);
         }
         await this.redis.del(sessionsKey);
@@ -182,7 +199,9 @@ export class AuthService {
     }
 
     // srem is still necessary — GETDEL only removes the hash key, not the entry in the session set
-    await this.safeRedisCall(() => this.redis.srem(getSessionsKey(payload.sub), payload.jti));
+    await this.safeRedisCall(() =>
+      this.redis.srem(getSessionsKey(payload.sub), payload.jti),
+    );
 
     return this.generateTokens({
       sub: payload.sub,
@@ -205,8 +224,8 @@ export class AuthService {
 
     if (payload) {
       await this.safeRedisCall(async () => {
-        await this.redis.del(getRefreshTokenKey(payload!.sub, payload!.jti));
-        await this.redis.srem(getSessionsKey(payload!.sub), payload!.jti);
+        await this.redis.del(getRefreshTokenKey(payload.sub, payload.jti));
+        await this.redis.srem(getSessionsKey(payload.sub), payload.jti);
       });
     }
 

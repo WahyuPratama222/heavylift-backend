@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Payment } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -70,7 +74,7 @@ export class PaymentsService {
   }
 
   async findAll(query: PaginationDto) {
-    const result = await paginate(
+    const result = await paginate<Payment>(
       this.prisma,
       this.prisma.payment,
       { orderBy: { created_at: 'desc' } },
@@ -79,7 +83,7 @@ export class PaymentsService {
 
     return {
       ...result,
-      data: result.data.map(this.serialize),
+      data: result.data.map((item) => this.serialize(item)),
     };
   }
 

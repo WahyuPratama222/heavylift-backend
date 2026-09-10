@@ -1,7 +1,6 @@
 import * as Joi from 'joi';
 
 export const envValidationSchema = Joi.object({
-
   PORT: Joi.number().empty('').required(),
 
   CORS_ORIGIN: Joi.string().required(),
@@ -20,5 +19,4 @@ export const envValidationSchema = Joi.object({
 
   OWNER_EMAIL: Joi.string().email().optional(),
   OWNER_PASSWORD: Joi.string().optional(),
-})
-  .unknown(true);
+}).unknown(true);

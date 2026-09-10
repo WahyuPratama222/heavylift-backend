@@ -50,7 +50,7 @@ describe('PackageCategoriesService', () => {
         ...dto,
       });
 
-      const result = await service.create(dto as any);
+      const result = await service.create(dto);
 
       expect(result).toEqual({ id: 'cat-1', ...dto });
     });
@@ -72,7 +72,7 @@ describe('PackageCategoriesService', () => {
         1,
       ]);
 
-      const result = await service.findAll({} as any);
+      const result = await service.findAll({});
 
       expect(mockPrisma.packageCategory.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ orderBy: { created_at: 'desc' } }),
@@ -97,9 +97,7 @@ describe('PackageCategoriesService', () => {
     it('should throw NotFoundException if category not found', async () => {
       mockPrisma.packageCategory.findUnique.mockResolvedValue(null);
 
-      await expect(service.findOne('cat-1')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.findOne('cat-1')).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -117,7 +115,7 @@ describe('PackageCategoriesService', () => {
         ...dto,
       });
 
-      const result = await service.update('cat-1', dto as any);
+      const result = await service.update('cat-1', dto);
 
       expect(result.name).toBe('Bulanan Updated');
     });
@@ -162,9 +160,7 @@ describe('PackageCategoriesService', () => {
     it('should throw NotFoundException if category not found', async () => {
       mockPrisma.packageCategory.findUnique.mockResolvedValue(null);
 
-      await expect(service.remove('cat-1')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.remove('cat-1')).rejects.toThrow(NotFoundException);
     });
 
     it('should throw ConflictException if packages still reference this category', async () => {
@@ -173,9 +169,7 @@ describe('PackageCategoriesService', () => {
       });
       mockPrisma.package.count.mockResolvedValue(3);
 
-      await expect(service.remove('cat-1')).rejects.toThrow(
-        ConflictException,
-      );
+      await expect(service.remove('cat-1')).rejects.toThrow(ConflictException);
       expect(mockPrisma.packageCategory.delete).not.toHaveBeenCalled();
     });
   });

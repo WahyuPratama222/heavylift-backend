@@ -8,10 +8,10 @@ describe('JwtStrategy', () => {
     strategy = new JwtStrategy();
   });
 
-  it('should transform jwt payload into user object', async () => {
+  it('should transform jwt payload into user object', () => {
     const payload = { sub: 'user-1', email: 'wahyu@gmail.com', role: 'member' };
 
-    const result = await strategy.validate(payload);
+    const result = strategy.validate(payload);
 
     expect(result).toEqual({
       id: 'user-1',

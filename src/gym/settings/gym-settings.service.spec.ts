@@ -31,26 +31,32 @@ describe('GymSettingsService', () => {
   // ============ update ============
   describe('update', () => {
     it('should upsert with provided gym_name', async () => {
-        const dto = { gym_name: 'My Gym', phone: '0812345' };
-        mockPrisma.gymSetting.upsert.mockResolvedValue({ id: SETTINGS_ID, ...dto });
+      const dto = { gym_name: 'My Gym', phone: '0812345' };
+      mockPrisma.gymSetting.upsert.mockResolvedValue({
+        id: SETTINGS_ID,
+        ...dto,
+      });
 
-        await service.update(dto as any);
+      await service.update(dto);
 
-        expect(mockPrisma.gymSetting.upsert).toHaveBeenCalledWith({
-            where: { id: SETTINGS_ID },
-            update: dto,
-            create: {
-            id: SETTINGS_ID,
-            ...dto,
-            },
-        });
+      expect(mockPrisma.gymSetting.upsert).toHaveBeenCalledWith({
+        where: { id: SETTINGS_ID },
+        update: dto,
+        create: {
+          id: SETTINGS_ID,
+          ...dto,
+        },
+      });
     });
 
     it('should fallback gym_name to "HeavyLift Gym" if not provided', async () => {
       const dto = { phone: '0812345' };
-      mockPrisma.gymSetting.upsert.mockResolvedValue({ id: SETTINGS_ID, ...dto });
+      mockPrisma.gymSetting.upsert.mockResolvedValue({
+        id: SETTINGS_ID,
+        ...dto,
+      });
 
-      await service.update(dto as any);
+      await service.update(dto);
 
       expect(mockPrisma.gymSetting.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -61,9 +67,13 @@ describe('GymSettingsService', () => {
 
     it('should not let undefined gym_name override the fallback (regression)', async () => {
       const dto = { gym_name: undefined, phone: '0812345' };
-      mockPrisma.gymSetting.upsert.mockResolvedValue({ id: SETTINGS_ID, ...dto, gym_name: 'HeavyLift Gym' });
+      mockPrisma.gymSetting.upsert.mockResolvedValue({
+        id: SETTINGS_ID,
+        ...dto,
+        gym_name: 'HeavyLift Gym',
+      });
 
-      await service.update(dto as any);
+      await service.update(dto);
 
       expect(mockPrisma.gymSetting.upsert).toHaveBeenCalledWith(
         expect.objectContaining({

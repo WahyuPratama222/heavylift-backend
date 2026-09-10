@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { ReviewsService } from './reviews.service';
 import { CreateReviewDto } from './dto/create-review.dto';
@@ -21,10 +29,19 @@ export class ReviewsController {
       'Only allowed within a 14-day window after the package end_date. One review per member package.',
   })
   @ApiResponse({ status: 201, description: 'Review submitted successfully' })
-  @ApiResponse({ status: 400, description: 'Package has not ended yet, or the review window has passed' })
-  @ApiResponse({ status: 403, description: 'This member package belongs to someone else' })
+  @ApiResponse({
+    status: 400,
+    description: 'Package has not ended yet, or the review window has passed',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'This member package belongs to someone else',
+  })
   @ApiResponse({ status: 404, description: 'Member package not found' })
-  @ApiResponse({ status: 409, description: 'This member package has already been reviewed' })
+  @ApiResponse({
+    status: 409,
+    description: 'This member package has already been reviewed',
+  })
   @MemberEndpoint()
   @Post()
   create(@CurrentUser() user: IUser, @Body() dto: CreateReviewDto) {
@@ -32,22 +49,25 @@ export class ReviewsController {
   }
 
   @ApiOperation({ summary: 'List published reviews (public)' })
-  @ApiResponse({ status: 200, description: 'Paginated list of published reviews' })
+  @ApiResponse({
+    status: 200,
+    description: 'Paginated list of published reviews',
+  })
   @Public()
   @Get()
   findPublished(@Query() query: FindReviewsDto) {
     return this.reviewsService.findPublished(query);
   }
 
-  @ApiOperation({ summary: 'Toggle a review\'s publish status (owner only)' })
-  @ApiResponse({ status: 200, description: 'Publish status updated successfully' })
+  @ApiOperation({ summary: "Toggle a review's publish status (owner only)" })
+  @ApiResponse({
+    status: 200,
+    description: 'Publish status updated successfully',
+  })
   @ApiResponse({ status: 404, description: 'Review not found' })
   @OwnerEndpoint()
   @Patch(':id/publish')
-  updatePublishStatus(
-    @Param('id') id: string,
-    @Body() dto: PublishReviewDto,
-  ) {
+  updatePublishStatus(@Param('id') id: string, @Body() dto: PublishReviewDto) {
     return this.reviewsService.updatePublishStatus(id, dto);
   }
 }

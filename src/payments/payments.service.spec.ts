@@ -145,7 +145,7 @@ describe('PaymentsService', () => {
         1,
       ]);
 
-      const result = await service.findAll({} as any);
+      const result = await service.findAll({});
 
       expect(result.data).toEqual([{ id: 'payment-1', amount: 150000 }]);
       expect(typeof result.data[0].amount).toBe('number');
@@ -154,7 +154,7 @@ describe('PaymentsService', () => {
     it('uses page and limit from query when provided', async () => {
       prisma.$transaction.mockResolvedValueOnce([[], 0]);
 
-      await service.findAll({ page: 2, limit: 5 } as any);
+      await service.findAll({ page: 2, limit: 5 });
 
       expect(prisma.payment.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ skip: 5, take: 5 }),

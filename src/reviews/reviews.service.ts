@@ -74,7 +74,11 @@ export class ReviewsService {
         where: { is_published: true },
         orderBy: { created_at: 'desc' },
         select: {
-          id: true, rating: true, comment: true, created_at: true, updated_at: true,
+          id: true,
+          rating: true,
+          comment: true,
+          created_at: true,
+          updated_at: true,
           member: { select: { name: true, photo_url: true } },
           member_package: { select: { package: { select: { name: true } } } },
         },

@@ -52,7 +52,7 @@ describe('EquipmentsService', () => {
     it('should create equipment successfully', async () => {
       mockPrisma.equipment.create.mockResolvedValue(mockEquipment);
 
-      const result = await service.create(dto as any);
+      const result = await service.create(dto);
 
       expect(result).toEqual(mockEquipment);
     });
@@ -71,7 +71,7 @@ describe('EquipmentsService', () => {
     it('should return paginated equipments by default', async () => {
       mockPrisma.$transaction.mockResolvedValue([[mockEquipment], 1]);
 
-      const result = await service.findAll({} as any);
+      const result = await service.findAll({});
 
       expect(result.data).toEqual([mockEquipment]);
       expect(result.meta.total).toBe(1);
@@ -81,7 +81,7 @@ describe('EquipmentsService', () => {
     it('should apply search filter', async () => {
       mockPrisma.$transaction.mockResolvedValue([[], 0]);
 
-      const result = await service.findAll({ search: 'tread' } as any);
+      const result = await service.findAll({ search: 'tread' });
 
       expect(result.data).toEqual([]);
       expect(result.meta.total).toBe(0);
@@ -91,14 +91,14 @@ describe('EquipmentsService', () => {
     it('should apply category filter', async () => {
       mockPrisma.$transaction.mockResolvedValue([[], 0]);
 
-      const result = await service.findAll({ category: 'Cardio' } as any);
+      const result = await service.findAll({ category: 'Cardio' });
 
       expect(result.data).toEqual([]);
       expect(result.meta.total).toBe(0);
       expect(mockPrisma.$transaction).toHaveBeenCalled();
     });
   });
-  
+
   // ============ findOne ============
   describe('findOne', () => {
     it('should return an equipment', async () => {
@@ -112,9 +112,7 @@ describe('EquipmentsService', () => {
     it('should throw NotFoundException if equipment not found', async () => {
       mockPrisma.equipment.findUnique.mockResolvedValue(null);
 
-      await expect(service.findOne('eq-1')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.findOne('eq-1')).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -129,7 +127,7 @@ describe('EquipmentsService', () => {
 
       const result = await service.update('eq-1', {
         name: 'Treadmill Pro',
-      } as any);
+      });
 
       expect(result.name).toBe('Treadmill Pro');
     });
@@ -166,9 +164,7 @@ describe('EquipmentsService', () => {
     it('should throw NotFoundException if equipment not found', async () => {
       mockPrisma.equipment.findUnique.mockResolvedValue(null);
 
-      await expect(service.remove('eq-1')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.remove('eq-1')).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -186,7 +182,7 @@ describe('EquipmentsService', () => {
         { id: 'p2', order: 1 },
       ]);
 
-      await service.addPhotos('eq-1', dto as any);
+      await service.addPhotos('eq-1', dto);
 
       expect(mockPrisma.equipmentPhoto.create).toHaveBeenCalledWith({
         data: { equipment_id: 'eq-1', url: 'a.jpg', order: 0 },
@@ -203,7 +199,7 @@ describe('EquipmentsService', () => {
       });
       mockPrisma.$transaction.mockResolvedValue([{ id: 'p3', order: 5 }]);
 
-      await service.addPhotos('eq-1', { photo_urls: ['c.jpg'] } as any);
+      await service.addPhotos('eq-1', { photo_urls: ['c.jpg'] });
 
       expect(mockPrisma.equipmentPhoto.create).toHaveBeenCalledWith({
         data: { equipment_id: 'eq-1', url: 'c.jpg', order: 5 },
@@ -236,9 +232,9 @@ describe('EquipmentsService', () => {
     it('should throw NotFoundException if photo not found', async () => {
       mockPrisma.equipmentPhoto.findUnique.mockResolvedValue(null);
 
-      await expect(
-        service.removePhoto('eq-1', 'photo-1'),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.removePhoto('eq-1', 'photo-1')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw NotFoundException if photo belongs to a different equipment', async () => {
@@ -247,9 +243,9 @@ describe('EquipmentsService', () => {
         equipment_id: 'eq-OTHER',
       });
 
-      await expect(
-        service.removePhoto('eq-1', 'photo-1'),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.removePhoto('eq-1', 'photo-1')).rejects.toThrow(
+        NotFoundException,
+      );
       expect(mockPrisma.equipmentPhoto.delete).not.toHaveBeenCalled();
     });
   });

@@ -11,7 +11,9 @@ export function logStart(label: string) {
 }
 
 export function logDone(label: string, detail: string) {
-  const elapsed = startTimes.has(label) ? Date.now() - startTimes.get(label)! : 0;
+  const elapsed = startTimes.has(label)
+    ? Date.now() - startTimes.get(label)!
+    : 0;
   console.log(`  ✓ ${detail}${elapsed > 0 ? ` (${elapsed}ms)` : ''}`);
 }
 

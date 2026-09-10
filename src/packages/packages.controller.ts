@@ -6,7 +6,7 @@ import {
   Param,
   Patch,
   Post,
-  Query
+  Query,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { PackagesService } from './packages.service';
@@ -24,7 +24,10 @@ export class PackagesController {
   @ApiOperation({ summary: 'Create a package (owner only)' })
   @ApiResponse({ status: 201, description: 'Package created successfully' })
   @ApiResponse({ status: 404, description: 'Package category not found' })
-  @ApiResponse({ status: 409, description: 'Package with this name already exists' })
+  @ApiResponse({
+    status: 409,
+    description: 'Package with this name already exists',
+  })
   @OwnerEndpoint()
   @Post()
   create(@Body() dto: CreatePackageDto) {
@@ -53,8 +56,14 @@ export class PackagesController {
 
   @ApiOperation({ summary: 'Update a package (owner only)' })
   @ApiResponse({ status: 200, description: 'Package updated successfully' })
-  @ApiResponse({ status: 404, description: 'Package or package category not found' })
-  @ApiResponse({ status: 409, description: 'Package with this name already exists' })
+  @ApiResponse({
+    status: 404,
+    description: 'Package or package category not found',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Package with this name already exists',
+  })
   @OwnerEndpoint()
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdatePackageDto) {
@@ -64,7 +73,10 @@ export class PackagesController {
   @ApiOperation({ summary: 'Delete a package (owner only)' })
   @ApiResponse({ status: 200, description: 'Package deleted successfully' })
   @ApiResponse({ status: 404, description: 'Package not found' })
-  @ApiResponse({ status: 409, description: 'Package still has members using it' })
+  @ApiResponse({
+    status: 409,
+    description: 'Package still has members using it',
+  })
   @OwnerEndpoint()
   @Delete(':id')
   remove(@Param('id') id: string) {

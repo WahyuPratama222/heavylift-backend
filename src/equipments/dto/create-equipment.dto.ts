@@ -1,4 +1,10 @@
-import { IsString, IsOptional, IsBoolean, IsEnum, IsNotEmpty } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsBoolean,
+  IsEnum,
+  IsNotEmpty,
+} from 'class-validator';
 import { EquipmentCondition } from '@prisma/client';
 
 export class CreateEquipmentDto {
