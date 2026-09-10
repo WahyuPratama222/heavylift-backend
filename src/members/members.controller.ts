@@ -52,7 +52,8 @@ export class MembersController {
 
   @ApiOperation({
     summary: 'List all members (owner only)',
-    description: 'Supports filtering by name search, package status, and gender.',
+    description:
+      'Supports filtering by name search, package status, and gender.',
   })
   @ApiResponse({ status: 200, description: 'Paginated list of members' })
   @OwnerEndpoint()
@@ -61,7 +62,10 @@ export class MembersController {
     return this.membersService.findAll(query);
   }
 
-  @ApiOperation({ summary: 'Get a single member by id, including package/payment history (owner only)' })
+  @ApiOperation({
+    summary:
+      'Get a single member by id, including package/payment history (owner only)',
+  })
   @ApiResponse({ status: 200, description: 'Member details' })
   @ApiResponse({ status: 404, description: 'Member not found' })
   @OwnerEndpoint()

@@ -6,6 +6,9 @@ export function MemberEndpoint() {
   return applyDecorators(
     Roles('member'),
     ApiBearerAuth(),
-    ApiResponse({ status: 403, description: 'Forbidden — requires member role' }),
+    ApiResponse({
+      status: 403,
+      description: 'Forbidden — requires member role',
+    }),
   );
 }

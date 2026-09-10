@@ -23,7 +23,9 @@ export class CreateAnnouncementDto {
 
   @ValidateIf((dto) => dto.target === 'specific_package')
   @IsUUID()
-  @IsNotEmpty({ message: 'package_id is required when target is specific_package' })
+  @IsNotEmpty({
+    message: 'package_id is required when target is specific_package',
+  })
   package_id?: string;
 
   @IsOptional()

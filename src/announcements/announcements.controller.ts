@@ -24,7 +24,10 @@ export class AnnouncementsController {
   constructor(private readonly announcementsService: AnnouncementsService) {}
 
   @ApiOperation({ summary: 'Create a manual announcement (owner only)' })
-  @ApiResponse({ status: 201, description: 'Announcement created successfully' })
+  @ApiResponse({
+    status: 201,
+    description: 'Announcement created successfully',
+  })
   @OwnerEndpoint()
   @Post()
   create(@Body() dto: CreateAnnouncementDto) {
@@ -45,7 +48,10 @@ export class AnnouncementsController {
   }
 
   @ApiOperation({ summary: 'Update an announcement (owner only)' })
-  @ApiResponse({ status: 200, description: 'Announcement updated successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Announcement updated successfully',
+  })
   @ApiResponse({ status: 404, description: 'Announcement not found' })
   @OwnerEndpoint()
   @Patch(':id')
@@ -54,7 +60,10 @@ export class AnnouncementsController {
   }
 
   @ApiOperation({ summary: 'Delete an announcement (owner only)' })
-  @ApiResponse({ status: 200, description: 'Announcement deleted successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Announcement deleted successfully',
+  })
   @ApiResponse({ status: 404, description: 'Announcement not found' })
   @OwnerEndpoint()
   @Delete(':id')

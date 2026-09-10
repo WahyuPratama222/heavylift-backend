@@ -18,10 +18,19 @@ export class MemberPackagesController {
     description:
       'Creates a pending_payment member package and a Xendit invoice in a single transaction. Rolls back automatically if invoice creation fails.',
   })
-  @ApiResponse({ status: 201, description: 'Member package created with a pending payment invoice' })
+  @ApiResponse({
+    status: 201,
+    description: 'Member package created with a pending payment invoice',
+  })
   @ApiResponse({ status: 404, description: 'Package not found' })
-  @ApiResponse({ status: 409, description: 'Member already has an active or pending package' })
-  @ApiResponse({ status: 503, description: 'Payment service is currently unavailable' })
+  @ApiResponse({
+    status: 409,
+    description: 'Member already has an active or pending package',
+  })
+  @ApiResponse({
+    status: 503,
+    description: 'Payment service is currently unavailable',
+  })
   @MemberEndpoint()
   @Post()
   create(@CurrentUser() user: IUser, @Body() dto: CreateMemberPackageDto) {
@@ -36,8 +45,13 @@ export class MemberPackagesController {
     return this.memberPackagesService.findMy(user.id, query);
   }
 
-  @ApiOperation({ summary: 'List all member packages across all members (owner only)' })
-  @ApiResponse({ status: 200, description: 'Paginated list of all member packages' })
+  @ApiOperation({
+    summary: 'List all member packages across all members (owner only)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Paginated list of all member packages',
+  })
   @OwnerEndpoint()
   @Get()
   findAll(@Query() query: PaginationDto) {

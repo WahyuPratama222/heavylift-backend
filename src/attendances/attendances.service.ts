@@ -1,4 +1,9 @@
-import { Injectable, ConflictException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { FindAttendancesDto } from './dto/find-attendance.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
@@ -74,7 +79,11 @@ export class AttendancesService {
     return paginate(
       this.prisma,
       this.prisma.attendance,
-      { where: { member_id: memberId }, orderBy: { check_in_at: 'desc' }, select: attendanceSelect },
+      {
+        where: { member_id: memberId },
+        orderBy: { check_in_at: 'desc' },
+        select: attendanceSelect,
+      },
       query,
     );
   }

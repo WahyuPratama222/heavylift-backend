@@ -92,7 +92,8 @@ describe('MemberPackagesService', () => {
         id: 'payment-1',
         amount: new Prisma.Decimal(100000),
         status: 'pending',
-        xendit_invoice_url: 'https://checkout-staging.xendit.co/web/xnd-invoice-1',
+        xendit_invoice_url:
+          'https://checkout-staging.xendit.co/web/xnd-invoice-1',
       });
 
       const result = await service.create(userId, userEmail, {
@@ -181,7 +182,7 @@ describe('MemberPackagesService', () => {
       prisma.member.findUnique.mockResolvedValueOnce(makeMember());
       prisma.$transaction.mockResolvedValueOnce([[{ id: 'mp-1' }], 1]);
 
-      const result = await service.findMy(userId, {} as any);
+      const result = await service.findMy(userId, {});
 
       expect(prisma.memberPackage.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: { member_id: memberId } }),
@@ -202,7 +203,7 @@ describe('MemberPackagesService', () => {
     it('returns all member packages paginated', async () => {
       prisma.$transaction.mockResolvedValueOnce([[{ id: 'mp-1' }], 1]);
 
-      const result = await service.findAll({} as any);
+      const result = await service.findAll({});
 
       expect(result.data).toEqual([{ id: 'mp-1' }]);
     });

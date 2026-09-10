@@ -38,7 +38,7 @@ describe('TrainersService', () => {
     it('should create a trainer successfully', async () => {
       mockPrisma.trainer.create.mockResolvedValue(mockTrainer);
 
-      const result = await service.create({ name: 'Budi' } as any);
+      const result = await service.create({ name: 'Budi' });
 
       expect(result).toEqual(mockTrainer);
     });
@@ -49,7 +49,7 @@ describe('TrainersService', () => {
     it('should return only active trainers ordered by created_at desc', async () => {
       mockPrisma.$transaction.mockResolvedValue([[mockTrainer], 1]);
 
-      const result = await service.findAll({} as any);
+      const result = await service.findAll({});
 
       expect(mockPrisma.trainer.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -91,7 +91,7 @@ describe('TrainersService', () => {
 
       const result = await service.update('trainer-1', {
         name: 'Budi Updated',
-      } as any);
+      });
 
       expect(result.name).toBe('Budi Updated');
     });

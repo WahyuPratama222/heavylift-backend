@@ -24,7 +24,10 @@ export class EquipmentsController {
 
   @ApiOperation({ summary: 'Create new equipment (owner only)' })
   @ApiResponse({ status: 201, description: 'Equipment created successfully' })
-  @ApiResponse({ status: 409, description: 'Equipment with this name already exists' })
+  @ApiResponse({
+    status: 409,
+    description: 'Equipment with this name already exists',
+  })
   @OwnerEndpoint()
   @Post()
   create(@Body() dto: CreateEquipmentDto) {
@@ -51,7 +54,10 @@ export class EquipmentsController {
   @ApiOperation({ summary: 'Update equipment (owner only)' })
   @ApiResponse({ status: 200, description: 'Equipment updated successfully' })
   @ApiResponse({ status: 404, description: 'Equipment not found' })
-  @ApiResponse({ status: 409, description: 'Equipment with this name already exists' })
+  @ApiResponse({
+    status: 409,
+    description: 'Equipment with this name already exists',
+  })
   @OwnerEndpoint()
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateEquipmentDto) {
@@ -72,22 +78,19 @@ export class EquipmentsController {
   @ApiResponse({ status: 404, description: 'Equipment not found' })
   @OwnerEndpoint()
   @Post(':id/photos')
-  addPhotos(
-    @Param('id') id: string,
-    @Body() dto: AddEquipmentPhotosDto,
-  ) {
+  addPhotos(@Param('id') id: string, @Body() dto: AddEquipmentPhotosDto) {
     return this.equipmentsService.addPhotos(id, dto);
   }
 
   @ApiOperation({ summary: 'Remove a photo from an equipment (owner only)' })
   @ApiResponse({ status: 200, description: 'Photo deleted successfully' })
-  @ApiResponse({ status: 404, description: 'Photo not found for this equipment' })
+  @ApiResponse({
+    status: 404,
+    description: 'Photo not found for this equipment',
+  })
   @OwnerEndpoint()
   @Delete(':id/photos/:photoId')
-  removePhoto(
-    @Param('id') id: string,
-    @Param('photoId') photoId: string,
-  ) {
+  removePhoto(@Param('id') id: string, @Param('photoId') photoId: string) {
     return this.equipmentsService.removePhoto(id, photoId);
   }
 }

@@ -22,8 +22,16 @@ export async function seedMemberPackages(prisma: PrismaClient) {
 
   const membersToAssign = members.slice(0, members.length - 3);
 
-  const statuses: Array<'active' | 'pending_payment' | 'expired' | 'cancelled'> = [
-    'active', 'active', 'active', 'pending_payment', 'expired', 'expired', 'cancelled',
+  const statuses: Array<
+    'active' | 'pending_payment' | 'expired' | 'cancelled'
+  > = [
+    'active',
+    'active',
+    'active',
+    'pending_payment',
+    'expired',
+    'expired',
+    'cancelled',
   ];
 
   let expiredCount = 0;
@@ -38,7 +46,11 @@ export async function seedMemberPackages(prisma: PrismaClient) {
     const pkg = faker.helpers.arrayElement(packages);
     const status = statuses[index % statuses.length];
 
-    const { startDate, endDate } = computeDates(status, pkg.duration_days, expiredCount);
+    const { startDate, endDate } = computeDates(
+      status,
+      pkg.duration_days,
+      expiredCount,
+    );
     if (status === 'expired') expiredCount++;
 
     const memberPackage = await prisma.memberPackage.create({
@@ -51,18 +63,29 @@ export async function seedMemberPackages(prisma: PrismaClient) {
       },
     });
 
-    const paymentStatus = status === 'active' || status === 'expired' ? 'paid'
-      : status === 'cancelled' ? 'failed'
-      : 'pending';
+    const paymentStatus =
+      status === 'active' || status === 'expired'
+        ? 'paid'
+        : status === 'cancelled'
+          ? 'failed'
+          : 'pending';
 
     await prisma.payment.create({
       data: {
         member_package_id: memberPackage.id,
         amount: pkg.price,
         status: paymentStatus,
-        payment_method: paymentStatus === 'paid' ? faker.helpers.arrayElement(['EWALLET', 'BANK_TRANSFER', 'CREDIT_CARD']) : null,
+        payment_method:
+          paymentStatus === 'paid'
+            ? faker.helpers.arrayElement([
+                'EWALLET',
+                'BANK_TRANSFER',
+                'CREDIT_CARD',
+              ])
+            : null,
         xendit_invoice_id: `dummy-inv-${faker.string.alphanumeric(12)}`,
-        xendit_invoice_url: paymentStatus !== 'failed' ? faker.internet.url() : null,
+        xendit_invoice_url:
+          paymentStatus !== 'failed' ? faker.internet.url() : null,
         paid_at: paymentStatus === 'paid' ? startDate : null,
       },
     });
@@ -70,7 +93,10 @@ export async function seedMemberPackages(prisma: PrismaClient) {
     totalCreated++;
   }
 
-  logDone('member-packages', `${totalCreated} new member packages seeded (${membersToAssign.length} eligible, ${members.length - membersToAssign.length} left as no_package)`);
+  logDone(
+    'member-packages',
+    `${totalCreated} new member packages seeded (${membersToAssign.length} eligible, ${members.length - membersToAssign.length} left as no_package)`,
+  );
 }
 function computeDates(
   status: 'active' | 'pending_payment' | 'expired' | 'cancelled',

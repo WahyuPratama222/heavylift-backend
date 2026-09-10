@@ -19,14 +19,19 @@ export class GymSchedulesController {
   constructor(private readonly gymSchedulesService: GymSchedulesService) {}
 
   @ApiOperation({ summary: 'List all 7 days of gym operating hours (public)' })
-  @ApiResponse({ status: 200, description: 'Weekly schedule, one entry per day' })
+  @ApiResponse({
+    status: 200,
+    description: 'Weekly schedule, one entry per day',
+  })
   @Public()
   @Get()
   findAll() {
     return this.gymSchedulesService.findAll();
   }
 
-  @ApiOperation({ summary: 'Update operating hours for a specific day (owner only)' })
+  @ApiOperation({
+    summary: 'Update operating hours for a specific day (owner only)',
+  })
   @ApiParam({ name: 'day', enum: Day })
   @ApiResponse({ status: 200, description: 'Schedule updated successfully' })
   @ApiResponse({ status: 404, description: 'Schedule for that day not found' })

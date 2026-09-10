@@ -80,7 +80,7 @@ describe('MembersService', () => {
         name: dto.name,
       });
 
-      await service.updateProfile('user-1', dto as any);
+      await service.updateProfile('user-1', dto);
 
       expect(mockPrisma.member.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -98,7 +98,7 @@ describe('MembersService', () => {
       });
       mockPrisma.member.update.mockResolvedValue({ id: 'member-1' });
 
-      await service.updateProfile('user-1', { name: 'Wahyu' } as any);
+      await service.updateProfile('user-1', { name: 'Wahyu' });
 
       expect(mockPrisma.member.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -110,9 +110,9 @@ describe('MembersService', () => {
     it('should throw NotFoundException if member not found or soft-deleted', async () => {
       mockPrisma.member.findUnique.mockResolvedValue(null);
 
-      await expect(
-        service.updateProfile('user-1', dto as any),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.updateProfile('user-1', dto as any)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -152,7 +152,7 @@ describe('MembersService', () => {
         1,
       ]);
 
-      const result = await service.findAll({ page: 1, limit: 10 } as any);
+      const result = await service.findAll({ page: 1, limit: 10 });
 
       expect(result.meta).toEqual({
         total: 1,
@@ -168,7 +168,7 @@ describe('MembersService', () => {
         1,
       ]);
 
-      const result = await service.findAll({} as any);
+      const result = await service.findAll({});
 
       expect(result.data[0].status).toBe('no_package');
     });
@@ -179,7 +179,7 @@ describe('MembersService', () => {
         1,
       ]);
 
-      const result = await service.findAll({} as any);
+      const result = await service.findAll({});
 
       expect(result.data[0].status).toBe('active');
     });
@@ -190,7 +190,7 @@ describe('MembersService', () => {
         1,
       ]);
 
-      const result = await service.findAll({} as any);
+      const result = await service.findAll({});
 
       expect(result.data[0].status).toBe('expired');
     });
@@ -198,7 +198,7 @@ describe('MembersService', () => {
     it('should pass search filter into where clause', async () => {
       mockPrisma.$transaction.mockResolvedValue([[], 0]);
 
-      await service.findAll({ search: 'wahyu' } as any);
+      await service.findAll({ search: 'wahyu' });
 
       expect(mockPrisma.member.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -212,7 +212,7 @@ describe('MembersService', () => {
     it('should translate status=no_package filter into correct where clause', async () => {
       mockPrisma.$transaction.mockResolvedValue([[], 0]);
 
-      await service.findAll({ status: 'no_package' } as any);
+      await service.findAll({ status: 'no_package' });
 
       expect(mockPrisma.member.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -241,9 +241,10 @@ describe('MembersService', () => {
       const result = await service.findOne('member-1');
 
       expect(typeof result.member_packages[0].package.price).toBe('number');
-      expect(typeof result.member_packages[0].payments[0].amount).toBe('number');
+      expect(typeof result.member_packages[0].payments[0].amount).toBe(
+        'number',
+      );
     });
-
 
     it('should throw NotFoundException if member not found', async () => {
       mockPrisma.member.findFirst.mockResolvedValue(null);

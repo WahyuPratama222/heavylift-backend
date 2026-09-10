@@ -34,16 +34,23 @@ export async function seedMembers(prisma: PrismaClient) {
             name: fullName,
             phone: `08${faker.string.numeric(10)}`,
             gender,
-            date_of_birth: faker.date.birthdate({ min: 18, max: 55, mode: 'age' }),
+            date_of_birth: faker.date.birthdate({
+              min: 18,
+              max: 55,
+              mode: 'age',
+            }),
             address: faker.location.streetAddress(),
             photo_url: faker.image.avatarGitHub(),
           },
         },
       },
     });
-    
+
     totalCreated++;
   }
 
-  logDone('members', `${totalCreated} new members created (${totalMembers} total, password: "password123")`);
+  logDone(
+    'members',
+    `${totalCreated} new members created (${totalMembers} total, password: "password123")`,
+  );
 }

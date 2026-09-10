@@ -32,9 +32,14 @@ export class AnnouncementsService {
 
     const hasActivePackage = latestPackage?.status === 'active';
 
-    const targetConditions: Prisma.AnnouncementWhereInput[] = [{ target: 'all' }];
+    const targetConditions: Prisma.AnnouncementWhereInput[] = [
+      { target: 'all' },
+    ];
     if (hasActivePackage) {
-      targetConditions.push({ target: 'specific_package', package_id: latestPackage.package_id });
+      targetConditions.push({
+        target: 'specific_package',
+        package_id: latestPackage.package_id,
+      });
     } else {
       targetConditions.push({ target: 'no_package' });
     }

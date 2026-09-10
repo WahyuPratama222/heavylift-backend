@@ -54,9 +54,9 @@ describe('GymSchedulesService', () => {
         open_time: '07:00',
       });
 
-      const result = await service.update('monday' as any, {
+      const result = await service.update('monday', {
         open_time: '07:00',
-      } as any);
+      });
 
       expect(result.open_time).toBe('07:00');
     });

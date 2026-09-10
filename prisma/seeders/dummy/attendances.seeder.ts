@@ -3,7 +3,7 @@ import { faker } from '@faker-js/faker';
 import { logDone, logStart } from '../log.util';
 
 export async function seedAttendances(prisma: PrismaClient) {
-  logStart('attendances')
+  logStart('attendances');
 
   const activeMembers = await prisma.member.findMany({
     where: {
@@ -30,7 +30,9 @@ export async function seedAttendances(prisma: PrismaClient) {
     for (let i = 0; i < sessionCount; i++) {
       const checkIn = faker.date.recent({ days: 30 });
       const durationMinutes = faker.number.int({ min: 30, max: 120 });
-      const checkOut = new Date(checkIn.getTime() + durationMinutes * 60 * 1000);
+      const checkOut = new Date(
+        checkIn.getTime() + durationMinutes * 60 * 1000,
+      );
 
       await prisma.attendance.create({
         data: {
@@ -39,10 +41,13 @@ export async function seedAttendances(prisma: PrismaClient) {
           check_out_at: checkOut,
         },
       });
-      
+
       totalCreated++;
     }
   }
 
-  logDone('attendances', `${totalCreated} attendance records seeded across ${activeMembers.length} active members`);
+  logDone(
+    'attendances',
+    `${totalCreated} attendance records seeded across ${activeMembers.length} active members`,
+  );
 }

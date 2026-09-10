@@ -72,14 +72,18 @@ export async function seedPackages(prisma: PrismaClient) {
         include_trainer: pkg.include_trainer,
         benefits: [
           'Akses semua alat gym',
-          faker.helpers.arrayElement(['Kelas group fitness gratis', 'Konsultasi nutrisi', 'Locker pribadi']),
+          faker.helpers.arrayElement([
+            'Kelas group fitness gratis',
+            'Konsultasi nutrisi',
+            'Locker pribadi',
+          ]),
           ...(pkg.include_trainer ? ['Pendampingan personal trainer'] : []),
         ],
         is_active: true,
       },
     });
 
-    totalCreated++; 
+    totalCreated++;
   }
 
   logDone('packages', `${totalCreated} packages seeded`);

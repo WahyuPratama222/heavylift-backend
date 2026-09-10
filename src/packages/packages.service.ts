@@ -1,4 +1,8 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePackageDto } from './dto/create-package.dto';
 import { UpdatePackageDto } from './dto/update-package.dto';
@@ -25,7 +29,14 @@ const packageSelect = {
   },
 };
 
-function formatPackage(pkg: any) {
+import { Prisma } from '@prisma/client';
+
+export interface PackageWithPrice {
+  price?: Prisma.Decimal | number | null;
+  [key: string]: unknown;
+}
+
+function formatPackage<T extends PackageWithPrice>(pkg: T) {
   return {
     ...pkg,
     price: toNumber(pkg.price),

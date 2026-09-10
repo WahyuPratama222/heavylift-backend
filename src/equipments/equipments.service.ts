@@ -47,7 +47,9 @@ export class EquipmentsService {
       {
         where: {
           is_active: true,
-          ...(search && { name: { contains: search, mode: 'insensitive' as const } }),
+          ...(search && {
+            name: { contains: search, mode: 'insensitive' as const },
+          }),
           ...(category && { category }),
         },
         select: equipmentSelect,

@@ -5,9 +5,20 @@ export async function seedPackageCategories(prisma: PrismaClient) {
   logStart('package-categories');
 
   const categories = [
-    { name: 'Bulanan', description: 'Paket keanggotaan bulanan, fleksibel tanpa komitmen jangka panjang' },
-    { name: 'Tahunan', description: 'Paket keanggotaan tahunan dengan harga lebih hemat per bulan' },
-    { name: 'Personal Training', description: 'Paket dengan sesi latihan didampingi trainer pribadi' },
+    {
+      name: 'Bulanan',
+      description:
+        'Paket keanggotaan bulanan, fleksibel tanpa komitmen jangka panjang',
+    },
+    {
+      name: 'Tahunan',
+      description:
+        'Paket keanggotaan tahunan dengan harga lebih hemat per bulan',
+    },
+    {
+      name: 'Personal Training',
+      description: 'Paket dengan sesi latihan didampingi trainer pribadi',
+    },
   ];
 
   let totalCreated = 0;

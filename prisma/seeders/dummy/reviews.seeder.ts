@@ -55,9 +55,12 @@ export async function seedReviews(prisma: PrismaClient) {
         is_published: faker.datatype.boolean(0.7), // 70% chance published
       },
     });
-    
+
     totalCreated++;
   }
 
-  logDone('reviews', `${totalCreated} reviews seeded (out of ${withinWindow.length} eligible member packages)`);
+  logDone(
+    'reviews',
+    `${totalCreated} reviews seeded (out of ${withinWindow.length} eligible member packages)`,
+  );
 }

@@ -59,7 +59,8 @@ export class MembersService {
       throw new NotFoundException('Member not found');
     }
 
-    const { deleted_at, ...result } = member;
+    const result = { ...member };
+    delete (result as { deleted_at?: unknown }).deleted_at;
     return result;
   }
 

@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { ReviewsService } from './reviews.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -40,10 +44,7 @@ describe('ReviewsService', () => {
     };
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        ReviewsService,
-        { provide: PrismaService, useValue: prisma },
-      ],
+      providers: [ReviewsService, { provide: PrismaService, useValue: prisma }],
     }).compile();
 
     service = module.get(ReviewsService);
@@ -144,7 +145,9 @@ describe('ReviewsService', () => {
 
     it('throws ConflictException when member package has already been reviewed', async () => {
       prisma.member.findUnique.mockResolvedValueOnce(makeMember());
-      prisma.memberPackage.findUnique.mockResolvedValueOnce(makeMemberPackage());
+      prisma.memberPackage.findUnique.mockResolvedValueOnce(
+        makeMemberPackage(),
+      );
 
       jest.useFakeTimers().setSystemTime(new Date('2026-08-05T00:00:00.000Z'));
 
@@ -170,7 +173,7 @@ describe('ReviewsService', () => {
     it('returns only published reviews', async () => {
       prisma.$transaction.mockResolvedValue([[{ id: 'review-1' }], 1]);
 
-      const result = await service.findPublished({} as any);
+      const result = await service.findPublished({});
 
       expect(prisma.review.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: { is_published: true } }),

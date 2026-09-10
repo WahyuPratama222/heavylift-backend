@@ -4,7 +4,7 @@ export class XenditWebhookDto {
   @IsString()
   id: string;
 
-  @IsIn(['PAID', 'EXPIRED', 'PENDING'])
+  @IsIn(['PAID', 'EXPIRED', 'PENDING', 'SUCCEEDED'])
   status: string;
 
   @IsOptional()
@@ -14,4 +14,6 @@ export class XenditWebhookDto {
   @IsOptional()
   @IsString()
   paid_at?: string;
+
+  [key: string]: any;
 }
