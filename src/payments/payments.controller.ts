@@ -13,7 +13,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiHeader } from '@nestjs/swagger';
 import { PaymentsService } from './payments.service';
 import { Public } from '../common/decorators/public.decorator';
 import { PaginationDto } from '../common/dto/pagination.dto';
-import { XenditWebhookDto } from './dto/xendit-webhook.dto';
+import { XenditWebhookPayload } from '../common/interfaces/xendit-webhook.interface';
 import { OwnerEndpoint } from '../common/decorators/owner-endpoint.decorator';
 
 @ApiTags('Payments')
@@ -41,9 +41,9 @@ export class PaymentsController {
   @HttpCode(HttpStatus.OK)
   handleWebhook(
     @Headers('x-callback-token') callbackToken: string,
-    @Body() dto: XenditWebhookDto,
+    @Body() payload: XenditWebhookPayload,
   ) {
-    return this.paymentsService.handleWebhook(callbackToken, dto);
+    return this.paymentsService.handleWebhook(callbackToken, payload);
   }
 
   @ApiOperation({ summary: 'List all payments (owner only)' })

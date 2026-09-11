@@ -9,7 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { paginate } from '../common/utils/paginate.util';
 import { toNumber } from '../common/utils/decimal.util';
-import { XenditWebhookDto } from './dto/xendit-webhook.dto';
+import { XenditWebhookPayload } from '../common/interfaces/xendit-webhook.interface';
 
 @Injectable()
 export class PaymentsService {
@@ -18,13 +18,13 @@ export class PaymentsService {
     private readonly config: ConfigService,
   ) {}
 
-  async handleWebhook(callbackToken: string, dto: XenditWebhookDto) {
+  async handleWebhook(callbackToken: string, payload: XenditWebhookPayload) {
     if (callbackToken !== this.config.get<string>('XENDIT_CALLBACK_TOKEN')) {
       throw new UnauthorizedException('Invalid callback token');
     }
 
     const payment = await this.prisma.payment.findUnique({
-      where: { xendit_invoice_id: dto.id },
+      where: { xendit_invoice_id: payload.id },
     });
 
     if (!payment) {
@@ -33,15 +33,15 @@ export class PaymentsService {
       return { message: 'Webhook received' };
     }
 
-    switch (dto.status) {
+    switch (payload.status) {
       case 'PAID':
         await this.prisma.$transaction([
           this.prisma.payment.update({
             where: { id: payment.id },
             data: {
               status: 'paid',
-              payment_method: dto.payment_method,
-              paid_at: dto.paid_at ? new Date(dto.paid_at) : new Date(),
+              payment_method: payload.payment_method,
+              paid_at: payload.paid_at ? new Date(payload.paid_at) : new Date(),
             },
           }),
           this.prisma.memberPackage.update({
